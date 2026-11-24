@@ -52,16 +52,18 @@ input[type=file]{padding:6px;cursor:pointer}input[type=file]::file-selector-butt
 #holo .shine{position:absolute;inset:-45%;background:conic-gradient(from 0deg,#ffd6ea,#d6f3ff,#e5d4ff,#ffeccd,#ffd6ea);opacity:.16;mix-blend-mode:soft-light;filter:blur(34px);animation:holospin 48s linear infinite}
 @keyframes holospin{to{transform:rotate(360deg)}}
 #holo .veil{position:absolute;inset:0;background:linear-gradient(180deg,color-mix(in srgb,var(--bg) 20%,transparent),color-mix(in srgb,var(--bg) 8%,transparent))}
-#holo svg.st{position:absolute;filter:drop-shadow(0 16px 24px rgba(120,40,140,.22)) saturate(1.12);animation:holofloat 17s ease-in-out infinite;will-change:transform}
-@keyframes holofloat{0%,100%{transform:translate3d(0,0,0) rotate(var(--r,-6deg)) scale(1)}50%{transform:translate3d(14px,-24px,0) rotate(calc(var(--r,-6deg) + 7deg)) scale(1.055)}}
-#holo .s1{top:-4%;left:0%;width:clamp(120px,17vw,215px);--r:-9deg;animation-duration:19s}
-#holo .s2{top:3%;right:0%;width:clamp(95px,13vw,175px);--r:7deg;animation-duration:15s;animation-delay:-4s}
-#holo .s3{top:29%;left:-2%;width:clamp(95px,14vw,185px);--r:-5deg;animation-duration:22s;animation-delay:-8s}
-#holo .s4{bottom:5%;left:2%;width:clamp(70px,9vw,120px);--r:9deg;animation-duration:16s;animation-delay:-2s}
-#holo .s5{bottom:-1%;right:4%;width:clamp(85px,11vw,150px);--r:-11deg;animation-duration:23s;animation-delay:-11s}
-#holo .s6{top:52%;right:-1%;width:clamp(85px,12vw,155px);--r:6deg;animation-duration:18s;animation-delay:-6s}
-#holo .s7{bottom:30%;left:45%;width:clamp(56px,7vw,92px);--r:-14deg;animation-duration:13s;animation-delay:-3s;opacity:.92}
-#holo .s8{top:22%;right:12%;width:clamp(44px,5vw,70px);--r:12deg;animation-duration:11s;animation-delay:-7s;opacity:.8}
+#holo svg.st{position:absolute;filter:drop-shadow(0 16px 24px rgba(120,40,140,.22)) saturate(1.12);will-change:transform;animation-name:var(--an,holodrift);animation-duration:var(--d,18s);animation-delay:var(--s,0s);animation-timing-function:cubic-bezier(.45,0,.55,1);animation-iteration-count:infinite}
+@keyframes holodrift{0%,100%{transform:translate3d(0,0,0) rotate(var(--r,-6deg)) scale(1)}25%{transform:translate3d(34px,-44px,0) rotate(calc(var(--r,-6deg) + 10deg)) scale(1.07)}50%{transform:translate3d(4px,-78px,0) rotate(calc(var(--r,-6deg) + 2deg)) scale(1.03)}75%{transform:translate3d(-36px,-30px,0) rotate(calc(var(--r,-6deg) - 12deg)) scale(1.09)}}
+@keyframes holospinfloat{0%{transform:translate3d(0,0,0) rotate(var(--r,-6deg)) scale(1)}25%{transform:translate3d(26px,-34px,0) rotate(calc(var(--r,-6deg) + 90deg)) scale(1.1)}50%{transform:translate3d(8px,-62px,0) rotate(calc(var(--r,-6deg) + 180deg)) scale(1.14)}75%{transform:translate3d(-20px,-30px,0) rotate(calc(var(--r,-6deg) + 270deg)) scale(1.08)}100%{transform:translate3d(0,0,0) rotate(calc(var(--r,-6deg) + 360deg)) scale(1)}}
+@keyframes holobob{0%,100%{transform:translate3d(0,0,0) rotate(var(--r,-6deg)) scale(1)}50%{transform:translate3d(-22px,-40px,0) rotate(calc(var(--r,-6deg) - 9deg)) scale(1.1)}}
+#holo .s1{top:-4%;left:0%;width:clamp(120px,17vw,215px);--r:-9deg;--d:21s;--s:-3s}
+#holo .s2{top:3%;right:0%;width:clamp(95px,13vw,175px);--r:7deg;--d:16s;--s:-7s}
+#holo .s3{top:29%;left:-2%;width:clamp(95px,14vw,185px);--r:-5deg;--d:24s;--s:-13s;--an:holobob}
+#holo .s4{bottom:5%;left:2%;width:clamp(70px,9vw,120px);--r:9deg;--d:19s;--s:-5s;--an:holobob}
+#holo .s5{bottom:-1%;right:4%;width:clamp(85px,11vw,150px);--r:-11deg;--d:16s;--s:-9s;--an:holospinfloat}
+#holo .s6{top:52%;right:-1%;width:clamp(85px,12vw,155px);--r:6deg;--d:20s;--s:-2s;--an:holobob}
+#holo .s7{top:60%;left:11%;width:clamp(56px,7vw,92px);--r:-14deg;--d:12s;--s:-4s;--an:holospinfloat;opacity:.95}
+#holo .s8{top:22%;right:12%;width:clamp(44px,5vw,70px);--r:12deg;--d:14s;--s:-7s;--an:holospinfloat}
 :root[data-theme="dark"] #holo{background:radial-gradient(58% 42% at 12% 2%,#2b1730 0%,transparent 62%),radial-gradient(52% 44% at 92% 96%,#1c1533 0%,transparent 62%),linear-gradient(180deg,#1a1420,#151020)}
 :root[data-theme="dark"] #holo svg.st{filter:drop-shadow(0 14px 26px rgba(0,0,0,.5)) brightness(.82) saturate(.95)}
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]) #holo{background:radial-gradient(58% 42% at 12% 2%,#2b1730 0%,transparent 62%),radial-gradient(52% 44% at 92% 96%,#1c1533 0%,transparent 62%),linear-gradient(180deg,#1a1420,#151020)}:root:not([data-theme="light"]) #holo svg.st{filter:drop-shadow(0 14px 26px rgba(0,0,0,.5)) brightness(.82) saturate(.95)}}
