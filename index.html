@@ -187,6 +187,12 @@ function musicToggle(){if(mBlocked){window.open('https://www.youtube.com/watch?v
 function musicStart(){if(mOn)return;if(ytp)mUnmute();else mInit().then(p=>{if(p)mUnmute()})}
 document.addEventListener('pointerdown',e=>{if(e.target&&e.target.closest&&e.target.closest('#mus'))return;musicStart()});
 document.addEventListener('keydown',e=>{if(e.target&&e.target.closest&&e.target.closest('#mus'))return;musicStart()});
+/* ====== Background music ducks while a song video is playing ====== */
+let mAuto=false;
+document.addEventListener('play',e=>{if(!e.target||e.target.tagName!=='VIDEO')return;if(mOn){mAuto=true;mMute()}},true);
+const mVideoStop=e=>{if(!e.target||e.target.tagName!=='VIDEO')return;if(mAuto&&!mOn&&!mBlocked){mAuto=false;musicStart()}};
+document.addEventListener('pause',mVideoStop,true);
+document.addEventListener('ended',mVideoStop,true);
 mInit();
 setTimeout(()=>{if(!mOn&&!mBlocked&&$('#mus'))toast('Tap anywhere for background music 🎵')},3600);
 </script></body></html>
