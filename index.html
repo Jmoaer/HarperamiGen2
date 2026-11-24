@@ -106,8 +106,8 @@ body.has-photo #holo svg.st{opacity:.20}
 <button id="mus" class="off" type="button" onclick="musicToggle()" aria-label="Play background music" aria-pressed="false" title="Play background music">🔇</button>
 <div id="toast"></div>
 <script>
-/* Photo background: fades in only when bg.jpg is present, else the chai gradient stays */
-(function(){const i=new Image();i.onload=()=>document.body.classList.add('has-photo');i.src='bg.jpg'})();
+/* Photo background: fades in only when a bg image is present, else the chai gradient stays */
+(function(){const c=['bg.jpg','bg.jpeg','bg.png','bg.webp'],l=document.querySelector('#holo .photo');let i=0;(function n(){if(i>=c.length||!l)return;const im=new Image();im.onload=()=>{l.style.backgroundImage='url("'+c[i]+'")';document.body.classList.add('has-photo')};im.onerror=()=>{i++;n()};im.src=c[i]})()})();
 /* ====== PASTE YOUR SUPABASE VALUES HERE ====== */
 const SB='https://mogrrgpmbgiicjeyddyq.supabase.co',KEY='sb_publishable_Oo7jD_QCgKUQ91TqmhKfrQ_z8Rvkgmh';
 /* ============================================= */
