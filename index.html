@@ -52,6 +52,7 @@ input[type=file]{padding:6px;cursor:pointer}input[type=file]::file-selector-butt
 /* ====== Animated holographic sticker background ====== */
 #holo{position:fixed;inset:0;z-index:-1;overflow:hidden;pointer-events:none;background:radial-gradient(58% 46% at 12% 0%,rgba(212,126,48,.34) 0%,transparent 64%),radial-gradient(54% 46% at 90% 98%,rgba(130,94,52,.38) 0%,transparent 64%),linear-gradient(170deg,#FDFBD4,#f6efbd 52%,#efe2a6)}
 #holo .photo{position:absolute;inset:-8%;background:url("bg.jpg") center 40%/cover no-repeat;opacity:0;transform:scale(1.02);transition:opacity 1.4s ease;animation:photodrift 46s ease-in-out infinite alternate;will-change:transform}
+body.has-photo{--card:rgba(255,252,231,.86);--in:rgba(255,255,255,.78)}
 body.has-photo #holo .photo{opacity:1}
 @keyframes photodrift{from{transform:scale(1.02) translate3d(0,0,0)}to{transform:scale(1.14) translate3d(-1.8%,-1.6%,0)}}
 body.has-photo #holo .shine{opacity:.10;mix-blend-mode:soft-light}
