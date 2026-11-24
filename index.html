@@ -51,13 +51,20 @@ input[type=file]{padding:6px;cursor:pointer}input[type=file]::file-selector-butt
 @keyframes mpulse{0%,100%{box-shadow:inset 0 1px 0 rgba(255,255,255,.7),0 12px 30px rgba(74,48,22,.32)}50%{box-shadow:inset 0 1px 0 rgba(255,255,255,.9),0 12px 34px rgba(212,126,48,.45)}}
 /* ====== Animated holographic sticker background ====== */
 #holo{position:fixed;inset:0;z-index:-1;overflow:hidden;pointer-events:none;background:radial-gradient(58% 46% at 12% 0%,rgba(212,126,48,.34) 0%,transparent 64%),radial-gradient(54% 46% at 90% 98%,rgba(130,94,52,.38) 0%,transparent 64%),linear-gradient(170deg,#FDFBD4,#f6efbd 52%,#efe2a6)}
-#holo .photo{position:absolute;inset:-8%;background:url("bg.jpg") center 40%/cover no-repeat;opacity:0;transform:scale(1.02);transition:opacity 1.4s ease;animation:photodrift 46s ease-in-out infinite alternate;will-change:transform}
+#holo .photo{position:absolute;inset:-8%;background:var(--bgimg,url("bg.jpg")) center 40%/cover no-repeat;opacity:0;transform:scale(1.02);transition:opacity 1.4s ease;animation:photodrift 46s ease-in-out infinite alternate;will-change:transform}
 body.has-photo{--card:rgba(255,252,231,.86);--in:rgba(255,255,255,.78)}
 body.has-photo #holo .photo{opacity:1}
 @keyframes photodrift{from{transform:scale(1.02) translate3d(0,0,0)}to{transform:scale(1.14) translate3d(-1.8%,-1.6%,0)}}
 body.has-photo #holo .shine{opacity:.10;mix-blend-mode:soft-light}
 body.has-photo #holo .veil{background:linear-gradient(180deg,rgba(26,18,10,.50),rgba(26,18,10,.28))}
 body.has-photo #holo svg.st{opacity:.20}
+/* Tall (portrait) photos on wide screens: whole frame visible, blurred photo fills the sides */
+@media (min-aspect-ratio:1/1){
+body.has-photo #holo .photo{background-image:none;animation-name:photodriftwide}
+body.has-photo #holo .photo::before{content:'';position:absolute;inset:-12%;background:var(--bgimg) center/cover no-repeat;filter:blur(38px) brightness(.62) saturate(1.05)}
+body.has-photo #holo .photo::after{content:'';position:absolute;inset:0;background:var(--bgimg) center 45%/contain no-repeat}
+}
+@keyframes photodriftwide{from{transform:scale(1)}to{transform:scale(1.06) translate3d(-1%,-1%,0)}}
 #holo .shine{position:absolute;inset:-45%;background:conic-gradient(from 0deg,#FDFBD4,#D47E30,#8D5A2B,#825E34,#FDFBD4);opacity:.20;mix-blend-mode:multiply;filter:blur(46px);animation:holospin 48s linear infinite}
 @keyframes holospin{to{transform:rotate(360deg)}}
 #holo .veil{position:absolute;inset:0;background:linear-gradient(180deg,rgba(253,251,212,.55),rgba(253,251,212,.22))}
@@ -74,6 +81,7 @@ body.has-photo #holo svg.st{opacity:.20}
 #holo .s7{top:60%;left:11%;width:clamp(56px,7vw,92px);--r:-14deg;--d:12s;--s:-4s;--an:holospinfloat;opacity:.95}
 #holo .s8{top:22%;right:12%;width:clamp(44px,5vw,70px);--r:12deg;--d:14s;--s:-7s;--an:holospinfloat}
 @media (prefers-reduced-motion:reduce){#holo svg.st,#holo .shine,#holo .photo,.card::after{animation:none}}
+@media (min-aspect-ratio:1/1) and (max-height:520px){body.has-photo #holo .photo{background-image:var(--bgimg);background-size:cover;background-position:center 35%}body.has-photo #holo .photo::before,body.has-photo #holo .photo::after{display:none}}
 </style></head><body>
 <div id="holo" aria-hidden="true"><div class="photo"></div><div class="shine"></div>
 <svg class="st s1" viewBox="0 0 100 100"><use href="#sStar"/></svg>
@@ -107,7 +115,7 @@ body.has-photo #holo svg.st{opacity:.20}
 <div id="toast"></div>
 <script>
 /* Photo background: fades in only when a bg image is present, else the chai gradient stays */
-(function(){const c=['bg.jpg','bg.jpeg','bg.png','bg.webp'],l=document.querySelector('#holo .photo');let i=0;(function n(){if(i>=c.length||!l)return;const im=new Image();im.onload=()=>{l.style.backgroundImage='url("'+c[i]+'")';document.body.classList.add('has-photo')};im.onerror=()=>{i++;n()};im.src=c[i]})()})();
+(function(){const c=['bg.jpg','bg.jpeg','bg.png','bg.webp'],l=document.querySelector('#holo .photo');let i=0;(function n(){if(i>=c.length||!l)return;const im=new Image();im.onload=()=>{document.documentElement.style.setProperty('--bgimg','url("'+c[i]+'")');document.body.classList.add('has-photo')};im.onerror=()=>{i++;n()};im.src=c[i]})()})();
 /* ====== PASTE YOUR SUPABASE VALUES HERE ====== */
 const SB='https://mogrrgpmbgiicjeyddyq.supabase.co',KEY='sb_publishable_Oo7jD_QCgKUQ91TqmhKfrQ_z8Rvkgmh';
 /* ============================================= */
