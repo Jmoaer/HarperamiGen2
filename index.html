@@ -43,9 +43,15 @@ video{width:100%;border-radius:14px;background:#000;max-height:60vh}
 .m{padding:14px;border:1px solid var(--bd);border-radius:12px;margin-top:10px;background:var(--in)}.m .row{align-items:flex-start}.m p{margin:4px 0 0;font-size:.85rem;color:var(--mu)}
 #toast{position:fixed;left:50%;bottom:calc(24px + env(safe-area-inset-bottom,0px));transform:translate(-50%,30px);background:var(--tx);color:var(--bg);padding:11px 18px;border-radius:30px;opacity:0;transition:.4s;z-index:60;pointer-events:none}#toast.on{opacity:1;transform:translate(-50%,0)}
 input[type=file]{padding:6px;cursor:pointer}input[type=file]::file-selector-button{background:linear-gradient(90deg,var(--ac),var(--ac2));color:#fff;border:0;border-radius:10px;padding:10px 14px;margin-right:10px;font:inherit;cursor:pointer}.hint{font-size:.78rem;color:var(--mu);margin:6px 0 0}.mu{color:var(--mu);font-size:.9rem}.vs{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+#mus{position:fixed;right:16px;bottom:calc(16px + env(safe-area-inset-bottom,0px));width:50px;height:50px;padding:0;border-radius:50%;border:1px solid var(--bd);display:flex;align-items:center;justify-content:center;font-size:1.3rem;line-height:1;box-shadow:0 8px 24px rgba(60,20,90,.22);z-index:55;transition:transform .25s,background .25s}
+#mus.off{background:var(--card);color:var(--mu)}
+#mus.on{animation:mpulse 2.4s ease-in-out infinite}
+@keyframes mpulse{0%,100%{box-shadow:0 8px 24px rgba(60,20,90,.22)}50%{box-shadow:0 8px 30px color-mix(in srgb,var(--ac) 55%,transparent)}}
 </style></head><body>
 <div id="load"><div class="logo">HarperamiGen2</div><div class="bars"><i></i><i></i><i></i><i></i><i></i></div><div class="bar"><b></b></div></div>
-<div id="app"></div><div id="toast"></div>
+<div id="app"></div>
+<button id="mus" class="off" type="button" onclick="musicToggle()" aria-label="Play background music" aria-pressed="false" title="Play background music">🔇</button>
+<div id="toast"></div>
 <script>
 /* ====== PASTE YOUR SUPABASE VALUES HERE ====== */
 const SB='https://mogrrgpmbgiicjeyddyq.supabase.co',KEY='sb_publishable_Oo7jD_QCgKUQ91TqmhKfrQ_z8Rvkgmh';
@@ -107,4 +113,33 @@ async function addSong(){const t=val('t');if(!t)return toast('Enter a title');co
 async function rename(id){const t=val('e'+id);if(!t)return;await api('PATCH','songs?id=eq.'+id,{title:t});toast('Title updated')}
 async function repl(id,v,el){const f=el.files[0];if(!f)return;const s=D.songs.find(x=>x.id===id),k=key(id,v,f);toast('Uploading…');await up(k,f);const old=s.v[v];s.v[v]=k;await api('PATCH','songs?id=eq.'+id,{v:s.v});if(old)rm(old);toast(cap(v)+' video updated');songs()}
 async function delS(id){if(!confirm('Delete this song and its videos?'))return;const s=D.songs.find(x=>x.id===id);for(const v of VP)if(s.v[v])await rm(s.v[v]);await api('DELETE','songs?id=eq.'+id);songs()}
+
+/* ====== Background music (YouTube) ====== */
+const YT_ID='F8cXsi9gzpY';
+let ytp=null,mOn=false,mBlocked=false,ytReady=false,ytLoading=false,ytQ=[];
+window.onYouTubeIframeAPIReady=()=>{ytReady=true;const q=ytQ;ytQ=[];q.forEach(f=>{try{f(true)}catch(e){}})};
+function ytLoad(){if(ytReady)return Promise.resolve(true);return new Promise(r=>{ytQ.push(r);if(ytLoading)return;ytLoading=true;const s=document.createElement('script');s.src='https://www.youtube.com/iframe_api';s.async=true;s.onerror=()=>{ytLoading=false;const q=ytQ;ytQ=[];q.forEach(f=>{try{f(false)}catch(e){}})};document.head.appendChild(s)})}
+function mPaint(){const b=$('#mus');if(!b)return;if(mBlocked){b.textContent='▶';b.classList.remove('on');b.classList.add('off');const t='Open the background music on YouTube';b.title=t;b.setAttribute('aria-label',t);b.setAttribute('aria-pressed','false');return}b.textContent=mOn?'🎵':'🔇';b.classList.toggle('on',mOn);b.classList.toggle('off',!mOn);const t=mOn?'Turn background music off':'Turn background music on';b.title=t;b.setAttribute('aria-label',t);b.setAttribute('aria-pressed',String(mOn))}
+function mUnmute(){mOn=true;if(ytp&&ytp.unMute){ytp.unMute();try{ytp.setVolume(55)}catch(e){}try{ytp.playVideo()}catch(e){}}mPaint()}
+function mMute(){mOn=false;if(ytp&&ytp.mute)ytp.mute();mPaint()}
+function mFallback(){if(mBlocked)return;mBlocked=true;mOn=false;mPaint();toast('YouTube won’t let this video play embedded — tap ▶ to open it')}
+async function mInit(){
+  if(ytp)return ytp;
+  const ok=await ytLoad();
+  if(!ok||!window.YT||!window.YT.Player){mFallback();return null}
+  const host=document.createElement('div');host.id='ythost';host.style.cssText='position:fixed;left:-9999px;top:0;width:200px;height:120px;overflow:hidden;opacity:0;pointer-events:none';
+  const inner=document.createElement('div');host.appendChild(inner);document.body.appendChild(host);
+  ytp=new YT.Player(inner,{videoId:YT_ID,width:200,height:120,playerVars:{autoplay:1,loop:1,playlist:YT_ID,controls:0,modestbranding:1,rel:0,playsinline:1,origin:location.origin},events:{
+    onReady:e=>{try{e.target.mute();e.target.setVolume(55);e.target.playVideo()}catch(err){}mPaint()},
+    onStateChange:()=>mPaint(),
+    onError:()=>mFallback()
+  }});
+  return ytp
+}
+function musicToggle(){if(mBlocked){window.open('https://www.youtube.com/watch?v='+YT_ID,'_blank','noopener');return}if(!mOn){if(ytp)mUnmute();else mInit().then(p=>{if(p)mUnmute()})}else mMute()}
+function musicStart(){if(mOn)return;if(ytp)mUnmute();else mInit().then(p=>{if(p)mUnmute()})}
+document.addEventListener('pointerdown',e=>{if(e.target&&e.target.closest&&e.target.closest('#mus'))return;musicStart()});
+document.addEventListener('keydown',e=>{if(e.target&&e.target.closest&&e.target.closest('#mus'))return;musicStart()});
+mInit();
+setTimeout(()=>{if(!mOn&&!mBlocked&&$('#mus'))toast('Tap anywhere for background music 🎵')},3600);
 </script></body></html>
