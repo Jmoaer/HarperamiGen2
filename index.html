@@ -302,7 +302,7 @@ async function loadDM(force){
     const names=(await cList(DP,400)).filter(n=>n.indexOf(pk+'__')===0);
     const miss=names.filter(n=>!dmSeen.has(n));
     if(miss.length){const got=await Promise.all(miss.map(async n=>[n,await cGet(DP+n)]));got.forEach(([n,m])=>{if(m)dmSeen.set(n,m)})}
-    const changed=sig!==dmSig||force;
+    const sig=names.join('|'),changed=sig!==dmSig||force;
     if(changed){dmSig=sig;renderDMList(names)}
     if(names.length)dmMark(pk,names[names.length-1]);
     if(changed){const sc=await scanDM(names);cDot(Object.keys(sc.byPair).some(k=>k!==pk))}
