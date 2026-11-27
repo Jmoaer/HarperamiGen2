@@ -191,28 +191,35 @@ async function repl(id,v,el){const f=el.files[0];if(!f)return;const s=D.songs.fi
 async function delS(id){if(!confirm('Delete this song and its videos?'))return;const s=D.songs.find(x=>x.id===id);for(const v of VP)if(s.v[v])await rm(s.v[v]);await api('DELETE','songs?id=eq.'+id);songs()}
 
 /* ====== Choir chat: one shared room every member and the admin can use ====== */
-const CH='chat/';
+const CH='chat/',DP='dm/';
 let chatT=null,chatW=null,chatSeen=new Map(),chatSig='',chatRead='',chatDot=false,chatMe='',chatCount=0;
+let chatMode='room',dmTo=null,dmUsers=null,dmSeen=new Map(),dmSig='';
+const pairOf=(a,b)=>[a,b].map(x=>String(x||'').toLowerCase().replace(/[^a-z0-9]/g,'')||'x').sort().join('__');
 const ckey=()=>String(Date.now()).padStart(13,'0')+'-'+Math.random().toString(36).slice(2,7);
 const ctm=ts=>{const d=new Date(ts||Date.now());return d.toLocaleDateString(undefined,{month:'short',day:'numeric'})+' · '+d.toLocaleTimeString(undefined,{hour:'2-digit',minute:'2-digit'})};
-const cList=async n=>{const r=await fetch(SB+'/storage/v1/object/list/media',{method:'POST',headers:{...H,'Content-Type':'application/json'},body:JSON.stringify({prefix:CH,limit:n,sortBy:{column:'name',order:'desc'}})});if(!r.ok)throw new Error(await r.text());return (await r.json()).map(o=>o.name).filter(x=>x.endsWith('.json')).reverse()};
-const cGet=async n=>{const r=await fetch(pub(CH+n),{cache:'no-store'});if(!r.ok)return null;try{return await r.json()}catch(e){return null}};
+const cList=async(p,n)=>{const r=await fetch(SB+'/storage/v1/object/list/media',{method:'POST',headers:{...H,'Content-Type':'application/json'},body:JSON.stringify({prefix:p,limit:n,sortBy:{column:'name',order:'desc'}})});if(!r.ok)throw new Error(await r.text());return (await r.json()).filter(o=>o.id&&String(o.name).endsWith('.json')).map(o=>o.name).reverse()};
+const cGet=async k=>{const r=await fetch(pub(k),{cache:'no-store'});if(!r.ok)return null;try{return await r.json()}catch(e){return null}};
 const cSend=async t=>{const o=who(),m={id:ckey(),u:o.uname||'admin',n:o.name||'Member',t,ts:Date.now()};const r=await fetch(SB+'/storage/v1/object/media/'+CH+m.id+'.json',{method:'POST',headers:{...H,'Content-Type':'application/json','x-upsert':'true'},body:JSON.stringify(m)});if(!r.ok)throw new Error(await r.text());return m};
 const cReadK=()=>'hg2chat_'+(chatMe||'none');
 const cDot=on=>{if(chatDot===on)return;chatDot=on;const b=$('#tab_chat');if(b)b.textContent='Chat'+(on?' •':'')};
 const cSaveRead=n=>{chatRead=n;try{localStorage.setItem(cReadK(),n)}catch(e){}cDot(false)};
 async function chat(){
-  chatMe=who().uname||'admin';chatCount=0;chatSig='';
+  chatMe=who().uname||'admin';chatCount=0;chatSig='';dmSig='';
   try{chatRead=localStorage.getItem(cReadK())||''}catch(e){chatRead=''}
-  $('#body').innerHTML=`<div class="card"><div class="row" style="margin-bottom:8px"><h2>Choir Chat</h2><span class="mu">Everyone · live</span></div><div id="chatmsgs" class="cmsgs"><p class="mu">Loading…</p></div><form class="csend" onsubmit="sendMsg(event)"><input id="chatbox" placeholder="Write a message to everyone…" autocomplete="off" maxlength="800" aria-label="Message"><button type="submit" class="s">Send</button></form></div>`;
-  await loadChat(true);
-  clearInterval(chatT);chatT=setInterval(()=>{if(tab==='chat'&&me)loadChat()},2500);
+  const pv=chatMode==='dm';
+  $('#body').innerHTML=`<div class="card"><div class="row" style="margin-bottom:2px"><h2>Choir Chat</h2><span class="mu">${pv?'Private':'Everyone · live'}</span></div><div class="chips"><button type="button" class="${pv?'':'on'}" onclick="chatMode='room';dmTo=null;chat()">Group room</button><button type="button" class="${pv?'on':''}" onclick="chatMode='dm';dmTo=null;chat()">Private message</button></div><div id="chatbody"></div></div>`;
+  if(pv){await renderDM()}
+  else{
+    $('#chatbody').innerHTML=`<div id="chatmsgs" class="cmsgs"><p class="mu">Loading…</p></div><form class="csend" onsubmit="sendMsg(event)"><input id="chatbox" placeholder="Write a message to everyone…" autocomplete="off" maxlength="800" aria-label="Message"><button type="submit" class="s">Send</button></form>`;
+    await loadChat(true);
+  }
+  clearInterval(chatT);chatT=setInterval(()=>{if(!me||tab!=='chat')return;chatMode==='dm'?loadDM():loadChat()},2500);
 }
 async function loadChat(force){
   try{
-    const names=await cList(200);
+    const names=await cList(CH,200);
     const miss=names.filter(n=>!chatSeen.has(n));
-    if(miss.length){const got=await Promise.all(miss.map(async n=>[n,await cGet(n)]));got.forEach(([n,m])=>{if(m)chatSeen.set(n,m)})}
+    if(miss.length){const got=await Promise.all(miss.map(async n=>[n,await cGet(CH+n)]));got.forEach(([n,m])=>{if(m)chatSeen.set(n,m)})}
     const sig=names.join('|');
     if(sig!==chatSig||force){chatSig=sig;renderChat(names)}
     if(names.length)cSaveRead(names[names.length-1]);
@@ -233,7 +240,51 @@ async function sendMsg(e){
 }
 function watchChat(){
   clearInterval(chatW);
-  chatW=setInterval(async()=>{if(!me||tab==='chat')return;try{const n=(await cList(1))[0];if(n&&n>chatRead)cDot(true)}catch(e){}},25000);
+  chatW=setInterval(async()=>{if(!me||tab==='chat')return;try{const n=(await cList(CH,1))[0];if(n&&n>chatRead)cDot(true)}catch(e){}},25000);
+}
+
+/* ====== Private messages: one thread per pair of members, stored under dm/ ====== */
+async function renderDM(){
+  const b=$('#chatbody');if(!b)return;
+  if(dmTo){
+    b.innerHTML=`<div class="row" style="justify-content:flex-start;margin:2px 0 8px"><button type="button" class="g s" onclick="dmTo=null;chat()">← All members</button><b>${esc(dmTo.n)}</b></div><div id="chatmsgs" class="cmsgs"><p class="mu">Loading…</p></div><form class="csend" onsubmit="sendDM(event)"><input id="dmbox" placeholder="Private message to ${esc(dmTo.n)}…" autocomplete="off" maxlength="800" aria-label="Private message"><button type="submit" class="s">Send</button></form>`;
+    await loadDM(true);
+    return;
+  }
+  b.innerHTML='<p class="mu" style="margin:18px 0;text-align:center">Loading members…</p>';
+  if(!dmUsers){try{dmUsers=(await api('GET','members?select=uname,name,photo&order=name')).filter(u=>String(u.uname||'').toLowerCase()!==String(chatMe).toLowerCase())}catch(e){dmUsers=[]}}
+  b.innerHTML=dmUsers.length?`<p class="hint" style="margin:2px 0 8px">Pick a member to message privately. Only the two of you see that thread in the app.</p><div style="max-height:56vh;overflow-y:auto">${dmUsers.map(u=>`<div class="song" onclick="openDM('${encodeURIComponent(u.uname||'')}')">${av(u)}<div style="flex:1;min-width:0"><b>${esc(u.name||u.uname||'Member')}</b><br><span class="mu">@${esc(u.uname||'')}</span></div><span class="mu">Message</span></div>`).join('')}</div>`:'<p class="mu" style="margin:18px 0;text-align:center">No other members yet.</p>';
+}
+function openDM(e){const u=decodeURIComponent(e),f=(dmUsers||[]).find(x=>x.uname===u);dmTo={u:u,n:(f&&f.name)||u};dmSeen=new Map();chat()}
+async function loadDM(force){
+  if(!dmTo)return;
+  const pk=pairOf(chatMe,dmTo.u);
+  try{
+    const names=(await cList(DP,400)).filter(n=>n.indexOf(pk+'__')===0);
+    const miss=names.filter(n=>!dmSeen.has(n));
+    if(miss.length){const got=await Promise.all(miss.map(async n=>[n,await cGet(DP+n)]));got.forEach(([n,m])=>{if(m)dmSeen.set(n,m)})}
+    const sig=names.join('|');
+    if(sig!==dmSig||force){dmSig=sig;renderDMList(names)}
+  }catch(e){const b=$('#chatmsgs');if(b&&!dmCount)b.innerHTML='<p class="mu" style="text-align:center;margin:22px 0">Private messages are unavailable right now. Check your connection and try again.</p>'}
+}
+let dmCount=0;
+function renderDMList(names){
+  const b=$('#chatmsgs');if(!b)return;
+  const near=b.scrollHeight-b.scrollTop-b.clientHeight<140;
+  const msgs=names.map(n=>dmSeen.get(n)).filter(Boolean).slice(-200);
+  b.innerHTML=msgs.length?msgs.map(m=>`<div class="cm${(m.u||'')===chatMe?' me':''}"><div class="cma">${esc((((m.u||'')===chatMe?who().name:m.n||'?')||'?').trim()[0]||'?').toUpperCase()}</div><div class="cmb"><div class="cmh"><b>${(m.u||'')===chatMe?'You':esc(m.n||'Member')}</b><span>${esc(ctm(m.ts))}</span></div><p>${esc(m.t)}</p></div></div>`).join(''):'<p class="mu" style="text-align:center;margin:22px 0">No private messages yet — say hello 👋</p>';
+  if(near||msgs.length>dmCount)b.scrollTop=b.scrollHeight;
+  dmCount=msgs.length;
+}
+async function sendDM(e){
+  e.preventDefault();const i=$('#dmbox');const t=(i?.value||'').trim();if(!t||!dmTo)return;i.value='';
+  const o=who(),pk=pairOf(chatMe,dmTo.u),m={id:ckey(),u:o.uname||'admin',n:o.name||'Member',to:dmTo.u,t,ts:Date.now()};
+  try{
+    const r=await fetch(SB+'/storage/v1/object/media/'+DP+pk+'__'+m.id+'.json',{method:'POST',headers:{...H,'Content-Type':'application/json','x-upsert':'true'},body:JSON.stringify(m)});
+    if(!r.ok)throw new Error(await r.text());
+    dmSeen.set(pk+'__'+m.id+'.json',m);dmSig='';await loadDM(true);
+  }catch(err){i.value=t;toast('Message not sent. Try again')}
+  if($('#dmbox'))$('#dmbox').focus();
 }
 
 /* ====== Background music (YouTube) ====== */
