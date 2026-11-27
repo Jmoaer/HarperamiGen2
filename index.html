@@ -159,7 +159,7 @@ const adm=async()=>{const a=await api('GET','admin?id=eq.1&select=*');D.admin=a[
 const toast=t=>{const e=$('#toast');e.textContent=t;e.classList.add('on');clearTimeout(toast.t);toast.t=setTimeout(()=>e.classList.remove('on'),2600)};
 const go=h=>{clearInterval(chatT);$('#app').innerHTML='<div class="pg">'+h+'</div>'};
 const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,6);
-const av=(o,c='')=>o.photo?`<img class="av ${c}" src="${o.photo}" alt="">`:`<div class="av ${c}">${esc((o.name||'?')[0].toUpperCase())}</div>`;
+const av=(o,c='')=>o.photo?`<img class="av ${c}" src="${o.photo}" alt="" loading="lazy" decoding="async">`:`<div class="av ${c}">${esc((o.name||'?')[0].toUpperCase())}</div>`;
 const val=id=>$('#'+id)?.value.trim()||'';
 const photo=f=>new Promise(r=>{const fr=new FileReader();fr.onerror=()=>r('');fr.onload=()=>{const i=new Image;i.onload=()=>{const c=document.createElement('canvas');c.width=c.height=128;const s=Math.min(i.width,i.height);c.getContext('2d').drawImage(i,(i.width-s)/2,(i.height-s)/2,s,s,0,0,128,128);r(c.toDataURL('image/jpeg',.8))};i.onerror=()=>r('');i.src=fr.result};fr.readAsDataURL(f)});
 const fld=(id,l,t='text',v='')=>`<label for="${id}">${l}</label><input id="${id}" type="${t}" value="${esc(v)}">`;
@@ -232,15 +232,30 @@ async function repl(id,v,el){const f=el.files[0];if(!f)return;const s=D.songs.fi
 async function delS(id){if(!confirm('Delete this song and its videos?'))return;const s=D.songs.find(x=>x.id===id);for(const v of VP)if(s.v[v])await rm(s.v[v]);await api('DELETE','songs?id=eq.'+id);songs()}
 
 /* ====== Choir chat: one shared room every member and the admin can use ====== */
-const CH='chat/',DP='dm/';
-let chatT=null,chatW=null,chatSeen=new Map(),chatSig='',chatRead='',chatDot=false,chatMe='',chatCount=0;
-let chatMode='room',dmTo=null,dmUsers=null,dmSeen=new Map(),dmSig='';
+const CH='chat/',DP='dm/',CSTEP=300,MAXDM=1000;
+let chatT=null,chatW=null,chatSeen=new Map(),chatNames=[],chatRendered=[],chatHasMore=false,chatAnchor=null,chatSig='',chatRead='',chatDot=false,chatMe='',chatCount=0;
+let chatMode='room',dmTo=null,dmUsers=null,dmSeen=new Map(),dmFiles=[],dmHasMore=false,dmAnchor=null,dmSig='',dmKey='',dmCount=0;
 const pairOf=(a,b)=>[a,b].map(x=>String(x||'').toLowerCase().replace(/[^a-z0-9]/g,'')||'x').sort().join('__');
 const ckey=()=>String(Date.now()).padStart(13,'0')+'-'+Math.random().toString(36).slice(2,7);
 const ctm=ts=>{const d=new Date(ts||Date.now());return d.toLocaleDateString(undefined,{month:'short',day:'numeric'})+' · '+d.toLocaleTimeString(undefined,{hour:'2-digit',minute:'2-digit'})};
 const cCache={};
 const cClear=p=>{for(const k in cCache)if(!p||k.indexOf(p)===0)delete cCache[k]};
-const cList=async(p,n)=>{const ck=p+'|'+n,now=Date.now();if(cCache[ck]&&now-cCache[ck].t<1600)return cCache[ck].v;const r=await fetch(SB+'/storage/v1/object/list/media',{method:'POST',headers:{...H,'Content-Type':'application/json'},body:JSON.stringify({prefix:p,limit:n,sortBy:{column:'name',order:'desc'}})});if(!r.ok)throw new Error(await r.text());const v=(await r.json()).filter(o=>o.id&&String(o.name).endsWith('.json')).map(o=>o.name).reverse();cCache[ck]={t:Date.now(),v};return v};
+/* Storage listing is paged (1000 per request) so the app can list past the API's per-call cap */
+const cList=async(p,n,off=0)=>{
+  const ck=p+'|'+n+'|'+off,now=Date.now();
+  if(cCache[ck]&&now-cCache[ck].t<1600)return cCache[ck].v;
+  const names=[];let left=n,start=off;
+  while(left>0){
+    const c=Math.min(left,1000);
+    const r=await fetch(SB+'/storage/v1/object/list/media',{method:'POST',headers:{...H,'Content-Type':'application/json'},body:JSON.stringify({prefix:p,limit:c,offset:start,sortBy:{column:'name',order:'desc'}})});
+    if(!r.ok)throw new Error(await r.text());
+    const rows=await r.json();
+    names.push(...rows.filter(o=>o.id&&String(o.name).endsWith('.json')).map(o=>o.name));
+    if(rows.length<c)break;
+    left-=c;start+=c;
+  }
+  const v=names.reverse();cCache[ck]={t:Date.now(),v};return v
+};
 const cGet=async k=>{const r=await fetch(pub(k));if(!r.ok)return null;try{return await r.json()}catch(e){return null}};
 const cSend=async t=>{const o=who(),m={id:ckey(),u:o.uname||'admin',n:o.name||'Member',t,ts:Date.now()};const r=await fetch(SB+'/storage/v1/object/media/'+CH+m.id+'.json',{method:'POST',headers:{...H,'Content-Type':'application/json','x-upsert':'true'},body:JSON.stringify(m)});if(!r.ok)throw new Error(await r.text());return m};
 const cReadK=()=>'hg2chat_'+(chatMe||'none');
@@ -248,6 +263,8 @@ const cDot=on=>{if(chatDot===on)return;chatDot=on;const b=$('#tab_chat');if(b)b.
 const cSaveRead=n=>{chatRead=n;try{localStorage.setItem(cReadK(),n)}catch(e){}cDot(false)};
 async function chat(){
   chatMe=who().uname||'admin';chatCount=0;chatSig='';dmSig='';
+  chatNames=[];chatRendered=[];chatSeen=new Map();chatHasMore=false;chatAnchor=null;
+  dmFiles=[];dmSeen=new Map();dmHasMore=false;dmAnchor=null;dmKey='';
   try{chatRead=localStorage.getItem(cReadK())||''}catch(e){chatRead=''}
   const pv=chatMode==='dm';
   await cLoadPhotos();
@@ -259,23 +276,52 @@ async function chat(){
   }
   clearInterval(chatT);chatT=setInterval(()=>{if(!me||tab!=='chat'||document.hidden)return;chatMode==='dm'?loadDM():loadChat()},3000);
 }
+const cmsg=m=>{const my=(m.u||'')===chatMe;return `<div class="cm${my?' me':''}">${cava(my?chatMe:m.u,m.n)}<div class="cmb"><div class="cmh"><b>${my?'You':esc(m.n||'Member')}</b><span>${esc(ctm(m.ts))}</span></div><p>${esc(m.t)}</p></div></div>`};
+const cMore=(on,fn)=>on?`<div style="text-align:center;padding:2px 0 6px"><button type="button" class="g s" onclick="${fn}()">Load earlier messages</button></div>`:'';
+/* Newest 300 messages are polled; older pages are pulled on demand, so history is never trimmed */
 async function loadChat(force){
   try{
-    const names=await cList(CH,200);
-    const miss=names.filter(n=>!chatSeen.has(n));
+    const newest=await cList(CH,CSTEP);
+    if(!chatNames.length)chatHasMore=newest.length>=CSTEP;
+    const merged=chatNames.length?Array.from(new Set(chatNames.concat(newest))).sort():newest.slice();
+    const miss=merged.filter(n=>!chatSeen.has(n));
     if(miss.length){const got=await Promise.all(miss.map(async n=>[n,await cGet(CH+n)]));got.forEach(([n,m])=>{if(m)chatSeen.set(n,m)})}
-    const sig=names.join('|');
-    if(sig!==chatSig||force){chatSig=sig;renderChat(names)}
-    if(names.length)cSaveRead(names[names.length-1]);
+    const sig=merged.length+'|'+merged[merged.length-1];
+    const changed=sig!==chatSig||force;
+    chatNames=merged;
+    if(changed){chatSig=sig;renderChat(!!force)}
+    if(chatNames.length)cSaveRead(chatNames[chatNames.length-1]);
   }catch(e){const b=$('#chatmsgs');if(b&&!chatCount)b.innerHTML='<p class="mu" style="text-align:center;margin:22px 0">Chat is unavailable right now. Check your connection and try again.</p>'}
 }
-function renderChat(names){
+function renderChat(reset){
   const b=$('#chatmsgs');if(!b)return;
-  const near=b.scrollHeight-b.scrollTop-b.clientHeight<140;
-  const msgs=names.map(n=>chatSeen.get(n)).filter(Boolean).slice(-200);
-  b.innerHTML=msgs.length?msgs.map(m=>`<div class="cm${(m.u||'')===chatMe?' me':''}">${cava(m.u,m.n)}<div class="cmb"><div class="cmh"><b>${(m.u||'')===chatMe?'You':esc(m.n||'Member')}</b><span>${esc(ctm(m.ts))}</span></div><p>${esc(m.t)}</p></div></div>`).join(''):'<p class="mu" style="text-align:center;margin:22px 0">No messages yet — say hello 👋</p>';
-  if(near||msgs.length>chatCount)b.scrollTop=b.scrollHeight;
-  chatCount=msgs.length;
+  const near=b.scrollHeight-b.scrollTop-b.clientHeight<140,before=chatCount;
+  if(reset){
+    const msgs=chatNames.map(n=>chatSeen.get(n)).filter(Boolean);
+    b.innerHTML=cMore(chatHasMore,'moreChat')+(msgs.length?msgs.map(cmsg).join(''):'<p class="mu" id="chatempty" style="text-align:center;margin:22px 0">No messages yet — say hello 👋</p>');
+    chatRendered=chatNames.slice();chatCount=msgs.length;
+    if(chatAnchor){b.scrollTop=chatAnchor.t+(b.scrollHeight-chatAnchor.h);chatAnchor=null}
+    else if(near||msgs.length>before)b.scrollTop=b.scrollHeight;
+    return;
+  }
+  const known=new Set(chatRendered),add=chatNames.filter(n=>!known.has(n)),msgs=add.map(n=>chatSeen.get(n)).filter(Boolean);
+  chatRendered=chatNames.slice();
+  if(!msgs.length)return;
+  const e=b.querySelector('#chatempty');if(e)e.remove();
+  b.insertAdjacentHTML('beforeend',msgs.map(cmsg).join(''));
+  chatCount=chatRendered.length;
+  if(near)b.scrollTop=b.scrollHeight;
+}
+async function moreChat(){
+  const b=$('#chatmsgs');if(b)chatAnchor={h:b.scrollHeight,t:b.scrollTop};
+  try{
+    const older=await cList(CH,CSTEP,chatNames.length);
+    if(older.length<CSTEP)chatHasMore=false;
+    if(!older.length){chatAnchor=null;toast('You are at the first message');return renderChat(true)}
+    const miss=older.filter(n=>!chatSeen.has(n));
+    if(miss.length){const got=await Promise.all(miss.map(async n=>[n,await cGet(CH+n)]));got.forEach(([n,m])=>{if(m)chatSeen.set(n,m)})}
+    chatNames=older.concat(chatNames);chatSig='';renderChat(true);
+  }catch(e){chatAnchor=null;toast('Couldn’t load earlier messages. Try again')}
 }
 async function sendMsg(e){
   e.preventDefault();const i=$('#chatbox'),btn=$('#chatbody button[type=submit]');const t=(i?.value||'').trim();if(!t)return;
@@ -320,10 +366,11 @@ async function renderDM(){
   }
   b.innerHTML='<p class="mu" style="margin:18px 0;text-align:center">Loading members…</p>';
   if(!dmUsers){try{dmUsers=(await api('GET','members?select=uname,name,photo&order=name')).filter(u=>String(u.uname||'').toLowerCase()!==String(chatMe).toLowerCase())}catch(e){dmUsers=[]}}
-  let cnt={},prev={};
-  try{const s=await scanDM();s.list.forEach(x=>{cnt[x.other]=(cnt[x.other]||0)+1})}catch(e){}
+  let cnt={},prev={},all=[];
+  try{all=await cList(DP,MAXDM)}catch(e){}
+  try{const s=await scanDM(all);s.list.forEach(x=>{cnt[x.other]=(cnt[x.other]||0)+1})}catch(e){}
   try{
-    const th=dmThreads(await cList(DP,400));
+    const th=dmThreads(all);
     await Promise.all(th.slice(0,25).map(async t=>{if(!dmPrev[t.last]){const m=await cGet(DP+t.last);if(m)dmPrev[t.last]=m}}));
     th.forEach(t=>{const m=dmPrev[t.last];if(m)prev[t.other]=(m.u===chatMe?'You: ':'')+String(m.t||'')});
   }catch(e){}
@@ -335,23 +382,40 @@ function openDM(e){const u=decodeURIComponent(e),f=(dmUsers||[]).find(x=>x.uname
 async function loadDM(force){
   if(!dmTo)return;
   const pk=pairOf(chatMe,dmTo.u);
+  if(dmKey!==pk){dmKey=pk;dmFiles=[];dmSeen=new Map();dmHasMore=false;dmSig='';dmCount=0}
   try{
-    const names=(await cList(DP,400)).filter(n=>n.indexOf(pk+'__')===0);
+    const newest=await cList(DP+pk+'__',CSTEP);
+    if(!dmFiles.length)dmHasMore=newest.length>=CSTEP;
+    const names=dmFiles.length?Array.from(new Set(dmFiles.concat(newest))).sort():newest.slice();
     const miss=names.filter(n=>!dmSeen.has(n));
     if(miss.length){const got=await Promise.all(miss.map(async n=>[n,await cGet(DP+n)]));got.forEach(([n,m])=>{if(m)dmSeen.set(n,m)})}
-    const sig=names.join('|'),changed=sig!==dmSig||force;
-    if(changed){dmSig=sig;renderDMList(names)}
+    const sig=names.length+'|'+names[names.length-1],changed=sig!==dmSig||force;
+    dmFiles=names;
+    if(changed){dmSig=sig;renderDMList()}
     if(names.length)dmMark(pk,names[names.length-1]);
-    if(changed){const sc=await scanDM(names);cDot(Object.keys(sc.byPair).some(k=>k!==pk))}
+    if(changed){const sc=await scanDM();cDot(Object.keys(sc.byPair).some(k=>k!==pk))}
   }catch(e){const b=$('#chatmsgs');if(b&&!dmCount)b.innerHTML='<p class="mu" style="text-align:center;margin:22px 0">Private messages are unavailable right now. Check your connection and try again.</p>'}
 }
-let dmCount=0;
-function renderDMList(names){
+async function moreDM(){
+  if(!dmTo)return;
+  const b=$('#chatmsgs');if(b)dmAnchor={h:b.scrollHeight,t:b.scrollTop};
+  const pk=pairOf(chatMe,dmTo.u);
+  try{
+    const older=await cList(DP+pk+'__',CSTEP,dmFiles.length);
+    if(older.length<CSTEP)dmHasMore=false;
+    if(!older.length){dmAnchor=null;toast('You are at the first message');return renderDMList()}
+    const miss=older.filter(n=>!dmSeen.has(n));
+    if(miss.length){const got=await Promise.all(miss.map(async n=>[n,await cGet(DP+n)]));got.forEach(([n,m])=>{if(m)dmSeen.set(n,m)})}
+    dmFiles=older.concat(dmFiles);dmSig='';renderDMList();
+  }catch(e){dmAnchor=null;toast('Couldn’t load earlier messages. Try again')}
+}
+function renderDMList(){
   const b=$('#chatmsgs');if(!b)return;
-  const near=b.scrollHeight-b.scrollTop-b.clientHeight<140;
-  const msgs=names.map(n=>dmSeen.get(n)).filter(Boolean).slice(-200);
-  b.innerHTML=msgs.length?msgs.map(m=>`<div class="cm${(m.u||'')===chatMe?' me':''}">${cava((m.u||'')===chatMe?chatMe:m.u,m.n)}<div class="cmb"><div class="cmh"><b>${(m.u||'')===chatMe?'You':esc(m.n||'Member')}</b><span>${esc(ctm(m.ts))}</span></div><p>${esc(m.t)}</p></div></div>`).join(''):'<p class="mu" style="text-align:center;margin:22px 0">No private messages yet — say hello 👋</p>';
-  if(near||msgs.length>dmCount)b.scrollTop=b.scrollHeight;
+  const near=b.scrollHeight-b.scrollTop-b.clientHeight<140,before=dmCount;
+  const msgs=dmFiles.map(n=>dmSeen.get(n)).filter(Boolean);
+  b.innerHTML=cMore(dmHasMore,'moreDM')+(msgs.length?msgs.map(cmsg).join(''):'<p class="mu" style="text-align:center;margin:22px 0">No private messages yet — say hello 👋</p>');
+  if(dmAnchor){b.scrollTop=dmAnchor.t+(b.scrollHeight-dmAnchor.h);dmAnchor=null}
+  else if(near||msgs.length>before)b.scrollTop=b.scrollHeight;
   dmCount=msgs.length;
 }
 async function sendDM(e){
@@ -388,7 +452,7 @@ const presBeat=async()=>{if(!me)return;const n=presName();if(!n)return;try{await
 const presLoad=async()=>{
   if(!me)return;
   try{
-    const r=await fetch(SB+'/storage/v1/object/list/media',{method:'POST',headers:{...H,'Content-Type':'application/json'},body:JSON.stringify({prefix:PRES,limit:200,sortBy:{column:'name',order:'asc'}})});
+    const r=await fetch(SB+'/storage/v1/object/list/media',{method:'POST',headers:{...H,'Content-Type':'application/json'},body:JSON.stringify({prefix:PRES,limit:1000,sortBy:{column:'name',order:'asc'}})});
     if(r.ok){const a=await r.json();presSeen.clear();for(const o of a){const k=String(o.name||'').replace(/^presence\//,'').replace(/\.json$/,'');if(k)presSeen.set(k,Date.parse(o.updated_at||o.created_at||'')||0)}}
   }catch(e){}
   presPaint();
@@ -401,7 +465,7 @@ const dmStore=()=>{try{return JSON.parse(localStorage.getItem('hg2dm_'+chatMe)||
 const dmMark=(pk,n)=>{const o=dmStore();if(!(o[pk]>=n)){o[pk]=n;try{localStorage.setItem('hg2dm_'+chatMe,JSON.stringify(o))}catch(e){}}};
 async function scanDM(names){
   const my=san(chatMe),rd=dmStore(),byPair={},latest={},list=[];
-  const all=names||await cList(DP,400);
+  const all=names||await cList(DP,MAXDM);
   for(const n of all){
     const p=String(n).replace(/\.json$/,'').split('__');
     if(p.length<3)continue;

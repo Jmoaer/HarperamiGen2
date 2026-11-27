@@ -86,6 +86,23 @@ versionName '1.0.1'
 
 Then rebuild and upload the new `.aab`.
 
+## Capacity: 200+ members and unlimited messages
+
+- The member list, the online dots and the private-message member picker load the
+  whole choir in one query, so 200 members fit comfortably (photos load lazily).
+- Every chat and private message is its own small file in Supabase Storage, so
+  nothing is overwritten or trimmed. The group room opens with the newest 300
+  messages and **Load earlier messages** walks back through the whole history a
+  page at a time.
+- Storage listing is paged at 1000 entries per request, so the app keeps working
+  past the API's single-call limit, and presence covers every member.
+- Growth is bounded by your Supabase plan (free tier: 1 GB storage and 5 GB
+  bandwidth/month). At roughly 300 bytes per message that is millions of
+  messages; if the choir gets very busy, upgrade the Supabase plan rather than
+  deleting history.
+- The room polls only the newest page every 3 s; older pages are fetched once and
+  kept in memory, so long histories do not slow the chat down.
+
 ## Known limits (please read)
 
 - **The app is a wrapper around your website.** Google rejects apps that are
