@@ -154,7 +154,7 @@ const patch=async o=>{if(me.role==='a')await api('PATCH','admin?id=eq.1',o);else
 const ready=()=>/^https:\/\/.+\.supabase\.co\/?$/.test(SB)&&KEY.length>20;
 function setup(){go(`<div class="card auth"><h2>Almost online</h2><p class="sub">Database not connected yet</p><p class="mu">Open <b>index.html</b> in a text editor and replace <b>PASTE_PROJECT_URL</b> and <b>PASTE_ANON_KEY</b> near the top of the script with the values from Supabase (Settings → API). Then upload the file again. See README.txt.</p></div>`)}
 const SKEY='hg2session';
-const saveSession=()=>{try{localStorage.setItem(SKEY,JSON.stringify(me))}catch(e){}};
+const saveSession=()=>{try{const s=me.role==='a'?{role:'a',au:me.au}:{role:'m',u:{...me.u,pass:undefined}};localStorage.setItem(SKEY,JSON.stringify(s))}catch(e){}};
 const clearSession=()=>{try{localStorage.removeItem(SKEY)}catch(e){}};
 setTimeout(()=>{$('#load').classList.add('out');ready()?boot():setup()},2400);
 
