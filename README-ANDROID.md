@@ -13,11 +13,11 @@ Supabase backend, so members see the same data on the phone as on the website.
 | `android/app/src/main/java/com/harperami/gen2/MainActivity.java` | WebView screen: back button, file uploads, video fullscreen, downloads |
 | `android/release/harperami-upload.jks` | **Your upload key — keep it safe, never commit or share it** |
 | `android/release/keystore.properties` | Passwords for that key (also secret) |
-| `release/HarperamiGen2-1.0.0.aab` | Signed bundle to upload to Play Console |
-| `release/HarperamiGen2-1.0.0.apk` | Signed APK for testing on a phone |
+| `release/HarperamiGen2-1.0.0.aab` | Signed bundle to upload to Play Console (in the project workspace, kept out of git) |
+| `release/HarperamiGen2-1.0.0.apk` | Signed APK for testing on a phone (same folder) |
 | `app-assets/play-store-icon-512.png` | 512×512 store icon |
 | `app-assets/feature-graphic-1024x500.png` | Store feature graphic |
-| `app-assets/screenshots/` | Phone screenshots for the store listing |
+| `app-assets/screenshots/` | Four phone screenshots (1080×1920) for the store listing |
 | `manifest.webmanifest`, `icons/` | Make the website installable too |
 | `privacy.html` | Privacy policy page (required by Play) |
 
