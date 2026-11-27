@@ -180,7 +180,7 @@ async function boot(){
     try{
       await adm();
       if(s.au&&s.au!==D.admin.uname){clearSession();return login()}
-      me={role:'a'};tab='mem';watchChat();home();return
+      me={role:'a',au:s.au};tab='mem';watchChat();home();return
     }catch(e){toast('Couldn’t restore your session. Please sign in');return login()}
   }
   if(!s.u||!s.u.uname){clearSession();return login()}
@@ -204,7 +204,7 @@ async function doForgot(){if(!val('b')||!val('p'))return toast('Fill in all fiel
 
 function home(){const a=me.role==='a',o=who();
 const tabs=a?[['chat',chatDot?'Chat •':'Chat'],['mem','Members'],['songs','Songs'],['prof','Profile']]:[['chat',chatDot?'Chat •':'Chat'],['lib','Library'],['prof','Profile']];
-go(`<div class="top">${av(o)}<div class="t"><h3>${esc(o.name)}</h3><small>${a?'Administrator':cap(o.voice||'')+' · Member'}</small></div><button class="g s" onclick="login()">Sign out</button></div><div class="tabs">${tabs.map(t=>`<button id="tab_${t[0]}" class="${tab===t[0]?'on':''}" onclick="tab='${t[0]}';home()">${t[1]}</button>`).join('')}</div><div id="body"><p class="mu">Loading…</p></div>`);
+go(`<div class="top"><span class="pav">${av(o)}<i class="pdot" data-u="${san(o.uname||'')}"></i></span><div class="t"><h3>${esc(o.name)}</h3><small>${a?'Administrator':cap(o.voice||'')+' · Member'}</small></div><button class="g s" onclick="login()">Sign out</button></div><div class="tabs">${tabs.map(t=>`<button id="tab_${t[0]}" class="${tab===t[0]?'on':''}" onclick="tab='${t[0]}';home()">${t[1]}</button>`).join('')}</div><div id="body"><p class="mu">Loading…</p></div>`);
 presWatch();
 ({chat,lib,prof:()=>prof(o,a),mem,songs})[tab]()}
 const ls=async()=>{D.songs=await api('GET','songs?select=*&order=title')};
@@ -221,7 +221,7 @@ async function saveProf(){const a=me.role==='a';if(!val('n'))return toast('Name 
 function pick(){const i=document.createElement('input');i.type='file';i.accept='image/*';i.style.cssText='position:fixed;left:-9999px';i.onchange=async()=>{const f=i.files[0];i.remove();if(!f)return;toast('Reading photo…');const p=await photo(f);if(!p)return toast('Couldn’t read that picture. Try a JPG or PNG');await patch({photo:p});toast('Photo saved');home()};document.body.appendChild(i);i.click()}
 async function emo(e){const c=document.createElement('canvas');c.width=c.height=128;const x=c.getContext('2d'),g=x.createLinearGradient(0,0,128,128);g.addColorStop(0,'#D47E30');g.addColorStop(1,'#8D5A2B');x.fillStyle=g;x.fillRect(0,0,128,128);x.font='72px sans-serif';x.textAlign='center';x.textBaseline='middle';x.fillText(e,64,70);await patch({photo:c.toDataURL('image/png')});toast('Icon saved');home()}
 
-async function mem(){D.users=await api('GET','members?select=*&order=name');$('#body').innerHTML=`<div class="card"><h2>Members (${D.users.length})</h2>${D.users.length?D.users.map(u=>`<div class="m"><div class="row"><div class="row" style="justify-content:flex-start;flex-wrap:nowrap"><span class="pav">${av(u)}<i class="pdot" data-u="${san(u.uname)}"></i></span><div><b>${esc(u.name)}</b> <span class="mu">@${esc(u.uname)}</span><p>${cap(u.voice||'')} · Age ${esc(u.age||'—')} · Born ${esc(u.birth||'—')}</p><p>${esc(u.addr||'No address')}</p></div></div><button class="d s" onclick="delM('${u.id}')">Delete</button></div></div>`).join(''):'<p class="mu">No members yet.</p>'}</div>`;presPaint()}
+async function mem(){if(!D.admin.uname){try{await adm()}catch(e){}}D.users=await api('GET','members?select=*&order=name');const aRow=D.admin.uname?`<div class="m"><div class="row"><div class="row" style="justify-content:flex-start;flex-wrap:nowrap"><span class="pav">${av(D.admin)}<i class="pdot" data-u="${san(D.admin.uname)}"></i></span><div><b>${esc(D.admin.name||'Admin')}</b> <span class="mu">@${esc(D.admin.uname)}</span><p>Choir administrator</p><p class="mu">You</p></div></div><span class="mu" style="font-size:.78rem">Admin</span></div></div>`:'';$('#body').innerHTML=`<div class="card"><h2>Members (${D.users.length+(aRow?1:0)})</h2>${aRow}${D.users.length?D.users.map(u=>`<div class="m"><div class="row"><div class="row" style="justify-content:flex-start;flex-wrap:nowrap"><span class="pav">${av(u)}<i class="pdot" data-u="${san(u.uname)}"></i></span><div><b>${esc(u.name)}</b> <span class="mu">@${esc(u.uname)}</span><p>${cap(u.voice||'')} · Age ${esc(u.age||'—')} · Born ${esc(u.birth||'—')}</p><p>${esc(u.addr||'No address')}</p></div></div><button class="d s" onclick="delM('${u.id}')">Delete</button></div></div>`).join(''):'<p class="mu">No members yet.</p>'}</div>`;presPaint()}
 async function delM(id){if(!confirm('Delete this member?'))return;await api('DELETE','members?id=eq.'+id);mem();toast('Member deleted')}
 
 async function songs(){await ls();$('#body').innerHTML=`<div class="card"><h2>Add a Song</h2>${fld('t','Song title')}<div class="vs">${VP.map(v=>`<div><label>${cap(v)} video</label><input type="file" accept="video/*" id="f_${v}"></div>`).join('')}</div><button class="full" onclick="addSong()">Upload song</button></div><div class="card"><h2>Manage Songs</h2>${D.songs.map(s=>`<div class="m"><div class="row"><input id="e${s.id}" value="${esc(s.title)}" style="flex:1;min-width:140px"><button class="s" onclick="rename('${s.id}')">Save title</button><button class="d s" onclick="delS('${s.id}')">Delete</button></div><div class="vs">${VP.map(v=>`<div><label>${cap(v)} ${s.v[v]?'✓':'(none)'}</label><input type="file" accept="video/*" onchange="repl('${s.id}','${v}',this)"></div>`).join('')}</div></div>`).join('')||'<p class="mu">No songs yet.</p>'}</div>`}
@@ -234,7 +234,7 @@ async function delS(id){if(!confirm('Delete this song and its videos?'))return;c
 /* ====== Choir chat: one shared room every member and the admin can use ====== */
 const CH='chat/',DP='dm/',CSTEP=300,MAXDM=1000;
 let chatT=null,chatW=null,chatSeen=new Map(),chatNames=[],chatRendered=[],chatHasMore=false,chatAnchor=null,chatSig='',chatRead='',chatDot=false,chatMe='',chatCount=0;
-let chatMode='room',dmTo=null,dmUsers=null,dmSeen=new Map(),dmFiles=[],dmHasMore=false,dmAnchor=null,dmSig='',dmKey='',dmCount=0;
+let chatMode='room',dmTo=null,dmUsers=null,dmUsersFor='',dmSeen=new Map(),dmFiles=[],dmHasMore=false,dmAnchor=null,dmSig='',dmKey='',dmCount=0;
 const pairOf=(a,b)=>[a,b].map(x=>String(x||'').toLowerCase().replace(/[^a-z0-9]/g,'')||'x').sort().join('__');
 const ckey=()=>String(Date.now()).padStart(13,'0')+'-'+Math.random().toString(36).slice(2,7);
 const ctm=ts=>{const d=new Date(ts||Date.now());return d.toLocaleDateString(undefined,{month:'short',day:'numeric'})+' · '+d.toLocaleTimeString(undefined,{hour:'2-digit',minute:'2-digit'})};
@@ -267,6 +267,8 @@ async function chat(){
   dmFiles=[];dmSeen=new Map();dmHasMore=false;dmAnchor=null;dmKey='';
   try{chatRead=localStorage.getItem(cReadK())||''}catch(e){chatRead=''}
   const pv=chatMode==='dm';
+  if(!D.admin.uname){try{await adm();cPhotos=null}catch(e){}}
+  if(dmUsersFor!==chatMe){dmUsers=null;dmUsersFor=chatMe}
   await cLoadPhotos();
   $('#body').innerHTML=`<div class="card"><div class="row" style="margin-bottom:2px"><h2>Choir Chat</h2><span class="mu">${pv?'Private':'Everyone · live'}</span></div><div class="chips"><button type="button" class="${pv?'':'on'}" onclick="chatMode='room';dmTo=null;chat()">Group room</button><button type="button" class="${pv?'on':''}" onclick="chatMode='dm';dmTo=null;chat()">Private message</button>${bellBtn()}</div><div id="chatbody"></div></div>`;
   if(pv){await renderDM()}
@@ -276,7 +278,7 @@ async function chat(){
   }
   clearInterval(chatT);chatT=setInterval(()=>{if(!me||tab!=='chat'||document.hidden)return;chatMode==='dm'?loadDM():loadChat()},3000);
 }
-const cmsg=m=>{const my=(m.u||'')===chatMe;return `<div class="cm${my?' me':''}">${cava(my?chatMe:m.u,m.n)}<div class="cmb"><div class="cmh"><b>${my?'You':esc(m.n||'Member')}</b><span>${esc(ctm(m.ts))}</span></div><p>${esc(m.t)}</p></div></div>`};
+const cmsg=m=>{const my=(m.u||'')===chatMe;return `<div class="cm${my?' me':''}"><span class="pav">${cava(my?chatMe:m.u,m.n)}${my?'':`<i class="pdot" data-u="${san(m.u)}"></i>`}</span><div class="cmb"><div class="cmh"><b>${my?'You':esc(m.n||'Member')}</b><span>${esc(ctm(m.ts))}</span></div><p>${esc(m.t)}</p></div></div>`};
 const cMore=(on,fn)=>on?`<div style="text-align:center;padding:2px 0 6px"><button type="button" class="g s" onclick="${fn}()">Load earlier messages</button></div>`:'';
 /* Newest 300 messages are polled; older pages are pulled on demand, so history is never trimmed */
 async function loadChat(force){
@@ -302,6 +304,7 @@ function renderChat(reset){
     chatRendered=chatNames.slice();chatCount=msgs.length;
     if(chatAnchor){b.scrollTop=chatAnchor.t+(b.scrollHeight-chatAnchor.h);chatAnchor=null}
     else if(near||msgs.length>before)b.scrollTop=b.scrollHeight;
+    presPaint();
     return;
   }
   const known=new Set(chatRendered),add=chatNames.filter(n=>!known.has(n)),msgs=add.map(n=>chatSeen.get(n)).filter(Boolean);
@@ -311,6 +314,7 @@ function renderChat(reset){
   b.insertAdjacentHTML('beforeend',msgs.map(cmsg).join(''));
   chatCount=chatRendered.length;
   if(near)b.scrollTop=b.scrollHeight;
+  presPaint();
 }
 async function moreChat(){
   const b=$('#chatmsgs');if(b)chatAnchor={h:b.scrollHeight,t:b.scrollTop};
@@ -366,6 +370,8 @@ async function renderDM(){
   }
   b.innerHTML='<p class="mu" style="margin:18px 0;text-align:center">Loading members…</p>';
   if(!dmUsers){try{dmUsers=(await api('GET','members?select=uname,name,photo&order=name')).filter(u=>String(u.uname||'').toLowerCase()!==String(chatMe).toLowerCase())}catch(e){dmUsers=[]}}
+  const dA=(D.admin&&D.admin.uname&&String(D.admin.uname).toLowerCase()!==String(chatMe).toLowerCase())?[{uname:D.admin.uname,name:D.admin.name||'Admin',photo:D.admin.photo||'',adm:1}]:[];
+  dmUsers=dA.concat(dmUsers.filter(u=>!dA.some(a=>String(a.uname).toLowerCase()===String(u.uname||'').toLowerCase())));
   let cnt={},prev={},all=[];
   try{all=await cList(DP,MAXDM)}catch(e){}
   try{const s=await scanDM(all);s.list.forEach(x=>{cnt[x.other]=(cnt[x.other]||0)+1})}catch(e){}
@@ -375,7 +381,7 @@ async function renderDM(){
     th.forEach(t=>{const m=dmPrev[t.last];if(m)prev[t.other]=(m.u===chatMe?'You: ':'')+String(m.t||'')});
   }catch(e){}
   const note=('Notification'in window&&Notification.permission==='granted')?'🔔 Notifications are on — new private messages will pop up even when this page is in the background.':'Notifications are off, so new messages only show up as a “new” badge when you open the app.';
-  b.innerHTML=dmUsers.length?`<p class="hint" style="margin:2px 0 6px">Pick a member to message privately. Only the two of you see that thread in the app.</p><p class="hint" style="margin:0 0 10px">${note}</p>${bellBtn()}<div style="max-height:52vh;overflow-y:auto;margin-top:8px">${dmUsers.map(u=>{const k=san(u.uname),c=cnt[k]||0,pv=prev[k];return `<div class="song" onclick="openDM('${encodeURIComponent(u.uname||'')}')"><span class="pav">${cava(u.uname,u.name)}<i class="pdot" data-u="${san(u.uname)}"></i></span><div style="flex:1;min-width:0"><b>${esc(u.name||u.uname||'Member')}</b><span class="cprev">${esc(pv||('@'+(u.uname||'')))}</span></div>${c?`<span class="cnt">${c}</span>`:'<span class="mu" style="font-size:.8rem">Chat</span>'}</div>`}).join('')}</div>`:'<p class="mu" style="margin:18px 0;text-align:center">No other members yet.</p>';
+  b.innerHTML=dmUsers.length?`<p class="hint" style="margin:2px 0 6px">Pick a member to message privately. Only the two of you see that thread in the app.</p><p class="hint" style="margin:0 0 10px">${note}</p>${bellBtn()}<div style="max-height:52vh;overflow-y:auto;margin-top:8px">${dmUsers.map(u=>{const k=san(u.uname),c=cnt[k]||0,pv=prev[k];return `<div class="song" onclick="openDM('${encodeURIComponent(u.uname||'')}')"><span class="pav">${cava(u.uname,u.name)}<i class="pdot" data-u="${san(u.uname)}"></i></span><div style="flex:1;min-width:0"><b>${esc(u.name||u.uname||'Member')}</b>${u.adm?'<span class="mu" style="font-size:.66rem;border:1px solid var(--bd);border-radius:6px;padding:1px 5px;margin-left:6px">Admin</span>':''}<span class="cprev">${esc(pv||('@'+(u.uname||'')))}</span></div>${c?`<span class="cnt">${c}</span>`:'<span class="mu" style="font-size:.8rem">Chat</span>'}</div>`}).join('')}</div>`:'<p class="mu" style="margin:18px 0;text-align:center">No other members yet.</p>';
   presPaint();
 }
 function openDM(e){const u=decodeURIComponent(e),f=(dmUsers||[]).find(x=>x.uname===u);dmTo={u:u,n:(f&&f.name)||u};dmSeen=new Map();chat()}
@@ -417,6 +423,7 @@ function renderDMList(){
   if(dmAnchor){b.scrollTop=dmAnchor.t+(b.scrollHeight-dmAnchor.h);dmAnchor=null}
   else if(near||msgs.length>before)b.scrollTop=b.scrollHeight;
   dmCount=msgs.length;
+  presPaint();
 }
 async function sendDM(e){
   e.preventDefault();const i=$('#dmbox'),btn=$('#chatbody button[type=submit]');const t=(i?.value||'').trim();if(!t||!dmTo)return;
@@ -446,7 +453,7 @@ const cava=(uname,name)=>{const p=(cPhotos&&cPhotos[san(uname)])||'';return p?`<
 /* ====== Presence: each signed-in member refreshes a small file every 15s ====== */
 const PRES='presence/',presSeen=new Map();
 let presT=null;
-const presName=()=>{let u=(me&&me.u&&me.u.uname)||(me&&me.au)||'';if(!u){try{u=(JSON.parse(localStorage.getItem(SKEY)||'null')||{}).u?.uname||''}catch(e){}}return u?san(u):''};
+const presName=()=>{let u=(me&&me.role==='a'&&D.admin&&D.admin.uname)||(me&&me.u&&me.u.uname)||(me&&me.au)||'';if(!u){try{const s=JSON.parse(localStorage.getItem(SKEY)||'null')||{};u=(s.u&&s.u.uname)||s.au||''}catch(e){}}return u?san(u):''};
 const presOn=u=>{const t=presSeen.get(san(u));return !!t&&Date.now()-t<45000};
 const presBeat=async()=>{if(!me)return;const n=presName();if(!n)return;try{await fetch(SB+'/storage/v1/object/media/'+PRES+n+'.json',{method:'POST',headers:{...H,'Content-Type':'application/json','x-upsert':'true'},body:JSON.stringify({u:n,n:(me.u&&me.u.name)||'Admin',ts:Date.now()})})}catch(e){}};
 const presLoad=async()=>{
