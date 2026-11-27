@@ -2,6 +2,14 @@
 <html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>HarperamiGen2</title>
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#1F2125">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Harperami">
+<link rel="icon" href="icons/favicon-48.png" sizes="48x48">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@600;700&family=Outfit:wght@300;400;500;600&display=swap" rel="stylesheet">
 <style>
 :root{--bg:#1F2125;--card:rgba(38,41,46,.74);--tx:#ECEEF1;--mu:#A3A8B0;--ac:#E0913F;--ac2:#C97B39;--bd:rgba(255,255,255,.12);--in:rgba(255,255,255,.05);color-scheme:dark;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
@@ -205,7 +213,8 @@ async function lib(){await ls();$('#body').innerHTML=`<div class="card"><h2>Song
 function list(){const q=val('q').toLowerCase(),r=D.songs.filter(s=>s.title.toLowerCase().includes(q));$('#list').innerHTML=r.length?r.map(s=>`<div class="song ${sel===s.id?'on':''}" onclick="play('${s.id}')"><b>${esc(s.title)}</b><span class="mu">${VP.filter(v=>s.v[v]).length} parts</span></div>`).join(''):'<p class="mu">No songs found.</p>'}
 function play(id,p){sel=id;const s=D.songs.find(x=>x.id===id);part=p||(s.v[me.u.voice]?me.u.voice:VP.find(v=>s.v[v])||'soprano');list();const k=s.v[part];
 $('#pl').innerHTML=`<div class="card pg"><h3>${esc(s.title)}</h3><div class="chips">${VP.map(v=>`<button class="${v===part?'on':''}" onclick="play('${id}','${v}')">${cap(v)}</button>`).join('')}</div>${k?`<video src="${pub(k)}" controls playsinline></video><button class="full" onclick="dl('${id}','${part}')">Download ${cap(part)} video</button>`:'<p class="mu">No video uploaded for this part yet.</p>'}</div>`}
-async function dl(id,p){const s=D.songs.find(x=>x.id===id),k=s.v[p];toast('Preparing download…');try{const b=await (await fetch(pub(k))).blob(),a=document.createElement('a');a.href=URL.createObjectURL(b);a.download=s.title.replace(/[^\w ]/g,'')+' - '+p+'.'+(k.split('.').pop()||'mp4');document.body.appendChild(a);a.click();a.remove()}catch(e){window.open(pub(k),'_blank')}}
+async function dl(id,p){const s=D.songs.find(x=>x.id===id),k=s.v[p],fn=s.title.replace(/[^\w ]/g,'')+' - '+p+'.'+(k.split('.').pop()||'mp4');toast('Preparing download…');if(window.HarperamiApp&&HarperamiApp.download){HarperamiApp.download(pub(k),fn);return}
+try{const b=await (await fetch(pub(k))).blob(),a=document.createElement('a');a.href=URL.createObjectURL(b);a.download=fn;document.body.appendChild(a);a.click();a.remove()}catch(e){window.open(pub(k),'_blank')}}
 
 function prof(o,a){$('#body').innerHTML=`<div class="card"><h2>Profile Settings</h2><div class="row" style="justify-content:flex-start;margin-top:10px">${av(o,'l')}<div><label>Profile picture</label><button type="button" class="s" onclick="pick()">Choose photo</button><div class="chips">${['🎤','🎶','🎼','🎹','🌸','⭐','🕊️','❤️'].map(e=>`<button type="button" onclick="emo('${e}')">${e}</button>`).join('')}</div></div></div>${fld('n','Full name','text',o.name)}${a?fld('u','Admin username','text',o.uname):''}${a?'':`<div class="row2"><div>${fld('b','Birthdate','date',o.birth)}</div><div>${fld('ag','Age','number',o.age)}</div></div>${fld('ad','Full address','text',o.addr)}<label for="v">Voice part</label><select id="v">${VP.map(v=>`<option value="${v}" ${o.voice===v?'selected':''}>${cap(v)}</option>`).join('')}</select>`}${fld('p','New password (leave blank to keep)','password')}<button class="full" onclick="saveProf()">Save changes</button></div>`}
 async function saveProf(){const a=me.role==='a';if(!val('n'))return toast('Name is required');const o={name:val('n')};if(a&&val('u'))o.uname=val('u');if(!a){Object.assign(o,{birth:val('b'),age:val('ag'),addr:val('ad'),voice:val('v')})}if(val('p'))o.pass=val('p');await patch(o);toast('Profile saved');home()}

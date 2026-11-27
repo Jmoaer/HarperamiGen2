@@ -1,0 +1,9 @@
+# Android build artefacts and signing material
+release/*.apk
+release/*.aab
+android/local.properties
+android/app/build/
+android/build/
+android/.gradle/
+android/release/keystore.properties
+android/release/*.jks
