@@ -82,6 +82,19 @@ body.has-photo #holo .photo::after{content:'';position:absolute;inset:0;backgrou
 #holo .s8{top:22%;right:12%;width:clamp(44px,5vw,70px);--r:12deg;--d:14s;--s:-7s;--an:holospinfloat}
 @media (prefers-reduced-motion:reduce){#holo svg.st,#holo .shine,#holo .photo,.card::after{animation:none}}
 @media (min-aspect-ratio:1/1) and (max-height:520px){body.has-photo #holo .photo{background-image:var(--bgimg);background-size:cover;background-position:center 35%}body.has-photo #holo .photo::before,body.has-photo #holo .photo::after{display:none}}
+/* ====== Choir chat ====== */
+.cmsgs{max-height:56vh;min-height:220px;overflow-y:auto;display:flex;flex-direction:column;gap:10px;padding:4px 2px 12px;scroll-behavior:smooth}
+.cm{display:flex;gap:9px;align-items:flex-start;max-width:89%}
+.cma{width:34px;height:34px;border-radius:50%;flex:none;display:flex;align-items:center;justify-content:center;font-size:.85rem;font-weight:700;color:#2a1c0f;background:linear-gradient(135deg,#FDFBD4,#D47E30);border:1px solid rgba(130,94,52,.35)}
+.cmb{background:var(--in);border:1px solid var(--bd);border-radius:14px;padding:8px 12px;min-width:0}
+.cmb p{margin:3px 0 0;font-size:.9rem;color:var(--tx);white-space:pre-wrap;overflow-wrap:anywhere}
+.cmh{display:flex;gap:8px;align-items:baseline;flex-wrap:wrap}
+.cmh b{font-size:.85rem}.cmh span{font-size:.7rem;color:var(--mu)}
+.cm.me{margin-left:auto;flex-direction:row-reverse}
+.cm.me .cmb{background:linear-gradient(135deg,rgba(253,251,212,.95),rgba(212,126,48,.30));border-color:rgba(141,90,43,.45)}
+.cm.me .cmh{justify-content:flex-end}
+.csend{display:flex;gap:8px;border-top:1px solid var(--bd);padding-top:12px;margin-top:4px}
+.csend input{flex:1}.csend button{flex:none;align-self:stretch}
 </style></head><body>
 <div id="holo" aria-hidden="true"><div class="photo"></div><div class="shine"></div>
 <svg class="st s1" viewBox="0 0 100 100"><use href="#sStar"/></svg>
@@ -129,7 +142,7 @@ const pub=k=>SB+'/storage/v1/object/public/media/'+k;
 let D={users:[],songs:[],admin:{}},me=null,tab='',sel=null,part='';
 const adm=async()=>{const a=await api('GET','admin?id=eq.1&select=*');D.admin=a[0]||{name:'Admin',uname:'admin',pass:'admin123',photo:''}};
 const toast=t=>{const e=$('#toast');e.textContent=t;e.classList.add('on');clearTimeout(toast.t);toast.t=setTimeout(()=>e.classList.remove('on'),2600)};
-const go=h=>{$('#app').innerHTML='<div class="pg">'+h+'</div>'};
+const go=h=>{clearInterval(chatT);$('#app').innerHTML='<div class="pg">'+h+'</div>'};
 const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,6);
 const av=(o,c='')=>o.photo?`<img class="av ${c}" src="${o.photo}" alt="">`:`<div class="av ${c}">${esc((o.name||'?')[0].toUpperCase())}</div>`;
 const val=id=>$('#'+id)?.value.trim()||'';
@@ -141,19 +154,19 @@ const ready=()=>/^https:\/\/.+\.supabase\.co\/?$/.test(SB)&&KEY.length>20;
 function setup(){go(`<div class="card auth"><h2>Almost online</h2><p class="sub">Database not connected yet</p><p class="mu">Open <b>index.html</b> in a text editor and replace <b>PASTE_PROJECT_URL</b> and <b>PASTE_ANON_KEY</b> near the top of the script with the values from Supabase (Settings → API). Then upload the file again. See README.txt.</p></div>`)}
 setTimeout(()=>{$('#load').classList.add('out');ready()?login():setup()},2400);
 
-function login(){me=null;go(`<div class="card auth"><h2>HarperamiGen2</h2><p class="sub">Welcome to our choir family</p>${fld('u','Username')}${fld('p','Password','password')}<button class="full" onclick="doLogin()">Sign in</button><div class="row" style="margin-top:12px"><button class="lk" onclick="forgot()">Forgot password?</button><button class="lk" onclick="reg()">Register new member</button></div><button class="g full" onclick="adminLogin()">Admin</button></div>`)}
-async function doLogin(){const r=await api('GET',`members?uname=eq.${enc(val('u').toLowerCase())}&pass=eq.${enc(val('p'))}&select=*`);if(!r.length)return toast('Wrong username or password');me={role:'m',u:r[0]};tab='lib';home()}
+function login(){me=null;clearInterval(chatT);clearInterval(chatW);go(`<div class="card auth"><h2>HarperamiGen2</h2><p class="sub">Welcome to our choir family</p>${fld('u','Username')}${fld('p','Password','password')}<button class="full" onclick="doLogin()">Sign in</button><div class="row" style="margin-top:12px"><button class="lk" onclick="forgot()">Forgot password?</button><button class="lk" onclick="reg()">Register new member</button></div><button class="g full" onclick="adminLogin()">Admin</button></div>`)}
+async function doLogin(){const r=await api('GET',`members?uname=eq.${enc(val('u').toLowerCase())}&pass=eq.${enc(val('p'))}&select=*`);if(!r.length)return toast('Wrong username or password');me={role:'m',u:r[0]};tab='lib';watchChat();home()}
 function adminLogin(){go(`<div class="card auth"><h2>Admin Access</h2><p class="sub">Private login</p>${fld('u','Admin username')}${fld('p','Admin password','password')}<button class="full" onclick="doAdmin()">Enter</button><button class="g full" onclick="login()">Back</button></div>`)}
-async function doAdmin(){await adm();if(val('u')!==D.admin.uname||val('p')!==D.admin.pass)return toast('Invalid admin login');me={role:'a'};tab='mem';home()}
+async function doAdmin(){await adm();if(val('u')!==D.admin.uname||val('p')!==D.admin.pass)return toast('Invalid admin login');me={role:'a'};tab='mem';watchChat();home()}
 function reg(){go(`<div class="card auth"><h2>Join the Choir</h2><p class="sub">Create your member account</p>${fld('n','Full name')}${fld('u','Username')}${fld('p','Password','password')}<div class="row2"><div>${fld('b','Birthdate','date')}</div><div>${fld('a','Age','number')}</div></div>${fld('ad','Full address')}<label for="v">Voice part</label><select id="v">${VP.map(v=>`<option value="${v}">${cap(v)}</option>`).join('')}</select><button class="full" onclick="doReg()">Register</button><button class="g full" onclick="login()">Back</button></div>`)}
 async function doReg(){const u={id:uid(),name:val('n'),uname:val('u').toLowerCase(),pass:val('p'),birth:val('b'),age:val('a'),addr:val('ad'),voice:val('v'),photo:''};if(!u.name||!u.uname||!u.pass)return toast('Name, username and password are required');const x=await api('GET',`members?uname=eq.${enc(u.uname)}&select=id`);if(x.length)return toast('Username is taken');await api('POST','members',u);toast('Registered! Please sign in');login()}
 function forgot(){go(`<div class="card auth"><h2>Reset Password</h2><p class="sub">Confirm your birthdate to set a new one</p>${fld('u','Username')}${fld('b','Birthdate','date')}${fld('p','New password','password')}<button class="full" onclick="doForgot()">Reset</button><button class="g full" onclick="login()">Back</button></div>`)}
 async function doForgot(){if(!val('b')||!val('p'))return toast('Fill in all fields');const r=await api('GET',`members?uname=eq.${enc(val('u').toLowerCase())}&birth=eq.${enc(val('b'))}&select=id`);if(!r.length)return toast('Details don’t match our records');await api('PATCH','members?id=eq.'+r[0].id,{pass:val('p')});toast('Password updated');login()}
 
 function home(){const a=me.role==='a',o=who();
-const tabs=a?[['mem','Members'],['songs','Songs'],['prof','Profile']]:[['lib','Library'],['prof','Profile']];
-go(`<div class="top">${av(o)}<div class="t"><h3>${esc(o.name)}</h3><small>${a?'Administrator':cap(o.voice||'')+' · Member'}</small></div><button class="g s" onclick="login()">Sign out</button></div><div class="tabs">${tabs.map(t=>`<button class="${tab===t[0]?'on':''}" onclick="tab='${t[0]}';home()">${t[1]}</button>`).join('')}</div><div id="body"><p class="mu">Loading…</p></div>`);
-({lib,prof:()=>prof(o,a),mem,songs})[tab]()}
+const tabs=a?[['chat',chatDot?'Chat •':'Chat'],['mem','Members'],['songs','Songs'],['prof','Profile']]:[['chat',chatDot?'Chat •':'Chat'],['lib','Library'],['prof','Profile']];
+go(`<div class="top">${av(o)}<div class="t"><h3>${esc(o.name)}</h3><small>${a?'Administrator':cap(o.voice||'')+' · Member'}</small></div><button class="g s" onclick="login()">Sign out</button></div><div class="tabs">${tabs.map(t=>`<button id="tab_${t[0]}" class="${tab===t[0]?'on':''}" onclick="tab='${t[0]}';home()">${t[1]}</button>`).join('')}</div><div id="body"><p class="mu">Loading…</p></div>`);
+({chat,lib,prof:()=>prof(o,a),mem,songs})[tab]()}
 const ls=async()=>{D.songs=await api('GET','songs?select=*&order=title')};
 
 async function lib(){await ls();$('#body').innerHTML=`<div class="card"><h2>Song Library</h2>${fld('q','Search song title')}<div id="list"></div></div><div id="pl"></div>`;$('#q').oninput=list;list();if(sel&&D.songs.some(s=>s.id===sel))play(sel,part)}
@@ -176,6 +189,52 @@ async function addSong(){const t=val('t');if(!t)return toast('Enter a title');co
 async function rename(id){const t=val('e'+id);if(!t)return;await api('PATCH','songs?id=eq.'+id,{title:t});toast('Title updated')}
 async function repl(id,v,el){const f=el.files[0];if(!f)return;const s=D.songs.find(x=>x.id===id),k=key(id,v,f);toast('Uploading…');await up(k,f);const old=s.v[v];s.v[v]=k;await api('PATCH','songs?id=eq.'+id,{v:s.v});if(old)rm(old);toast(cap(v)+' video updated');songs()}
 async function delS(id){if(!confirm('Delete this song and its videos?'))return;const s=D.songs.find(x=>x.id===id);for(const v of VP)if(s.v[v])await rm(s.v[v]);await api('DELETE','songs?id=eq.'+id);songs()}
+
+/* ====== Choir chat: one shared room every member and the admin can use ====== */
+const CH='chat/';
+let chatT=null,chatW=null,chatSeen=new Map(),chatSig='',chatRead='',chatDot=false,chatMe='',chatCount=0;
+const ckey=()=>String(Date.now()).padStart(13,'0')+'-'+Math.random().toString(36).slice(2,7);
+const ctm=ts=>{const d=new Date(ts||Date.now());return d.toLocaleDateString(undefined,{month:'short',day:'numeric'})+' · '+d.toLocaleTimeString(undefined,{hour:'2-digit',minute:'2-digit'})};
+const cList=async n=>{const r=await fetch(SB+'/storage/v1/object/list/media',{method:'POST',headers:{...H,'Content-Type':'application/json'},body:JSON.stringify({prefix:CH,limit:n,sortBy:{column:'name',order:'desc'}})});if(!r.ok)throw new Error(await r.text());return (await r.json()).map(o=>o.name).filter(x=>x.endsWith('.json')).reverse()};
+const cGet=async n=>{const r=await fetch(pub(CH+n),{cache:'no-store'});if(!r.ok)return null;try{return await r.json()}catch(e){return null}};
+const cSend=async t=>{const o=who(),m={id:ckey(),u:o.uname||'admin',n:o.name||'Member',t,ts:Date.now()};const r=await fetch(SB+'/storage/v1/object/media/'+CH+m.id+'.json',{method:'POST',headers:{...H,'Content-Type':'application/json','x-upsert':'true'},body:JSON.stringify(m)});if(!r.ok)throw new Error(await r.text());return m};
+const cReadK=()=>'hg2chat_'+(chatMe||'none');
+const cDot=on=>{if(chatDot===on)return;chatDot=on;const b=$('#tab_chat');if(b)b.textContent='Chat'+(on?' •':'')};
+const cSaveRead=n=>{chatRead=n;try{localStorage.setItem(cReadK(),n)}catch(e){}cDot(false)};
+async function chat(){
+  chatMe=who().uname||'admin';chatCount=0;chatSig='';
+  try{chatRead=localStorage.getItem(cReadK())||''}catch(e){chatRead=''}
+  $('#body').innerHTML=`<div class="card"><div class="row" style="margin-bottom:8px"><h2>Choir Chat</h2><span class="mu">Everyone · live</span></div><div id="chatmsgs" class="cmsgs"><p class="mu">Loading…</p></div><form class="csend" onsubmit="sendMsg(event)"><input id="chatbox" placeholder="Write a message to everyone…" autocomplete="off" maxlength="800" aria-label="Message"><button type="submit" class="s">Send</button></form></div>`;
+  await loadChat(true);
+  clearInterval(chatT);chatT=setInterval(()=>{if(tab==='chat'&&me)loadChat()},2500);
+}
+async function loadChat(force){
+  try{
+    const names=await cList(200);
+    const miss=names.filter(n=>!chatSeen.has(n));
+    if(miss.length){const got=await Promise.all(miss.map(async n=>[n,await cGet(n)]));got.forEach(([n,m])=>{if(m)chatSeen.set(n,m)})}
+    const sig=names.join('|');
+    if(sig!==chatSig||force){chatSig=sig;renderChat(names)}
+    if(names.length)cSaveRead(names[names.length-1]);
+  }catch(e){const b=$('#chatmsgs');if(b&&!chatCount)b.innerHTML='<p class="mu" style="text-align:center;margin:22px 0">Chat is unavailable right now. Check your connection and try again.</p>'}
+}
+function renderChat(names){
+  const b=$('#chatmsgs');if(!b)return;
+  const near=b.scrollHeight-b.scrollTop-b.clientHeight<140;
+  const msgs=names.map(n=>chatSeen.get(n)).filter(Boolean).slice(-200);
+  b.innerHTML=msgs.length?msgs.map(m=>`<div class="cm${(m.u||'')===chatMe?' me':''}"><div class="cma">${esc(((m.n||'?').trim()[0]||'?').toUpperCase())}</div><div class="cmb"><div class="cmh"><b>${esc(m.n||'Member')}</b><span>${esc(ctm(m.ts))}</span></div><p>${esc(m.t)}</p></div></div>`).join(''):'<p class="mu" style="text-align:center;margin:22px 0">No messages yet — say hello 👋</p>';
+  if(near||msgs.length>chatCount)b.scrollTop=b.scrollHeight;
+  chatCount=msgs.length;
+}
+async function sendMsg(e){
+  e.preventDefault();const i=$('#chatbox');const t=(i?.value||'').trim();if(!t)return;i.value='';
+  try{const m=await cSend(t);chatSeen.set(m.id+'.json',m);chatSig='';await loadChat(true)}catch(err){i.value=t;toast('Message not sent. Try again')}
+  if($('#chatbox'))$('#chatbox').focus();
+}
+function watchChat(){
+  clearInterval(chatW);
+  chatW=setInterval(async()=>{if(!me||tab==='chat')return;try{const n=(await cList(1))[0];if(n&&n>chatRead)cDot(true)}catch(e){}},25000);
+}
 
 /* ====== Background music (YouTube) ====== */
 const YT_ID='F8cXsi9gzpY';
