@@ -4,8 +4,8 @@
 <title>HarperamiGen2</title>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@600;700&family=Outfit:wght@300;400;500;600&display=swap" rel="stylesheet">
 <style>
-:root{--bg:#FDFBD4;--card:rgba(255,252,231,.60);--tx:#3a2a1b;--mu:#7a5b3e;--ac:#D47E30;--ac2:#8D5A2B;--bd:rgba(130,94,52,.30);--in:rgba(255,252,232,.58);color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
-:root[data-theme="light"]{--bg:#FDFBD4;--card:rgba(255,252,231,.72);--tx:#3a2a1b;--mu:#7a5b3e;--ac:#D47E30;--ac2:#8D5A2B;--bd:rgba(130,94,52,.30);--in:rgba(255,252,232,.7);color-scheme:light}
+:root{--bg:#F3E7D6;--card:rgba(255,251,243,.62);--tx:#3a2a1b;--mu:#7a5b3e;--ac:#D47E30;--ac2:#8D5A2B;--bd:rgba(130,94,52,.30);--in:rgba(255,252,245,.60);color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+:root[data-theme="light"]{--bg:#F3E7D6;--card:rgba(255,251,243,.78);--tx:#3a2a1b;--mu:#7a5b3e;--ac:#D47E30;--ac2:#8D5A2B;--bd:rgba(130,94,52,.30);--in:rgba(255,252,245,.72);color-scheme:light}
 *{box-sizing:border-box}html,body{margin:0;min-height:100%}
 body{background:var(--bg);color:var(--tx);font-family:'Outfit',system-ui,sans-serif;background-image:radial-gradient(circle at 15% 0%,color-mix(in srgb,var(--ac) 18%,transparent),transparent 45%),radial-gradient(circle at 90% 100%,color-mix(in srgb,var(--ac2) 15%,transparent),transparent 45%);background-attachment:fixed}
 h1,h2,h3{font-family:'Cormorant Garamond',Georgia,serif;margin:0}
@@ -45,12 +45,8 @@ video{width:100%;border-radius:14px;background:#241a10;max-height:60vh}
 .m{padding:14px;border:1px solid var(--bd);border-radius:12px;margin-top:10px;background:var(--in)}.m .row{align-items:flex-start}.m p{margin:4px 0 0;font-size:.85rem;color:var(--mu)}
 #toast{position:fixed;left:50%;bottom:calc(24px + env(safe-area-inset-bottom,0px));transform:translate(-50%,30px);background:var(--tx);color:var(--bg);padding:11px 18px;border-radius:30px;opacity:0;transition:.4s;z-index:60;pointer-events:none}#toast.on{opacity:1;transform:translate(-50%,0)}
 input[type=file]{padding:6px;cursor:pointer}input[type=file]::file-selector-button{background:linear-gradient(135deg,#FDFBD4,#D47E30);color:#2a1c0f;border:0;border-radius:10px;padding:10px 14px;margin-right:10px;font:inherit;cursor:pointer}.hint{font-size:.78rem;color:var(--mu);margin:6px 0 0}.mu{color:var(--mu);font-size:.9rem}.vs{display:grid;grid-template-columns:1fr 1fr;gap:8px}
-#mus{position:fixed;right:16px;bottom:calc(16px + env(safe-area-inset-bottom,0px));width:50px;height:50px;padding:0;border-radius:50%;border:1px solid rgba(130,94,52,.38);display:flex;align-items:center;justify-content:center;font-size:1.3rem;line-height:1;-webkit-backdrop-filter:blur(16px);backdrop-filter:blur(16px);box-shadow:inset 0 1px 0 rgba(255,255,255,.7),0 12px 30px rgba(74,48,22,.32);z-index:55;transition:transform .25s,background .25s}
-#mus.off{background:var(--card);color:var(--mu)}
-#mus.on{animation:mpulse 2.4s ease-in-out infinite}
-@keyframes mpulse{0%,100%{box-shadow:inset 0 1px 0 rgba(255,255,255,.7),0 12px 30px rgba(74,48,22,.32)}50%{box-shadow:inset 0 1px 0 rgba(255,255,255,.9),0 12px 34px rgba(212,126,48,.45)}}
 /* ====== Animated holographic sticker background ====== */
-#holo{position:fixed;inset:0;z-index:-1;overflow:hidden;pointer-events:none;background:radial-gradient(58% 46% at 12% 0%,rgba(212,126,48,.34) 0%,transparent 64%),radial-gradient(54% 46% at 90% 98%,rgba(130,94,52,.38) 0%,transparent 64%),linear-gradient(170deg,#FDFBD4,#f6efbd 52%,#efe2a6)}
+#holo{position:fixed;inset:0;z-index:-1;overflow:hidden;pointer-events:none;background:radial-gradient(58% 46% at 12% 0%,rgba(212,126,48,.34) 0%,transparent 64%),radial-gradient(54% 46% at 90% 98%,rgba(130,94,52,.38) 0%,transparent 64%),linear-gradient(170deg,#F5EDDF,#EFE0CB 52%,#E6D3B8)}
 #holo .photo{position:absolute;inset:-8%;background:var(--bgimg,url("bg.jpg")) center 40%/cover no-repeat;opacity:0;transform:scale(1.02);transition:opacity 1.4s ease;animation:photodrift 46s ease-in-out infinite alternate;will-change:transform}
 body.has-photo{--card:rgba(255,252,231,.86);--in:rgba(255,255,255,.78)}
 body.has-photo #holo .photo{opacity:1}
@@ -67,7 +63,7 @@ body.has-photo #holo .photo::after{content:'';position:absolute;inset:0;backgrou
 @keyframes photodriftwide{from{transform:scale(1)}to{transform:scale(1.06) translate3d(-1%,-1%,0)}}
 #holo .shine{position:absolute;inset:-45%;background:conic-gradient(from 0deg,#FDFBD4,#D47E30,#8D5A2B,#825E34,#FDFBD4);opacity:.20;mix-blend-mode:multiply;filter:blur(46px);animation:holospin 48s linear infinite}
 @keyframes holospin{to{transform:rotate(360deg)}}
-#holo .veil{position:absolute;inset:0;background:linear-gradient(180deg,rgba(253,251,212,.55),rgba(253,251,212,.22))}
+#holo .veil{position:absolute;inset:0;background:linear-gradient(180deg,rgba(245,237,223,.50),rgba(245,237,223,.18))}
 #holo svg.st{position:absolute;opacity:.44;filter:drop-shadow(0 16px 26px rgba(74,48,22,.30)) saturate(.9) brightness(1);will-change:transform;animation-name:var(--an,holodrift);animation-duration:var(--d,18s);animation-delay:var(--s,0s);animation-timing-function:cubic-bezier(.45,0,.55,1);animation-iteration-count:infinite}
 @keyframes holodrift{0%,100%{transform:translate3d(0,0,0) rotate(var(--r,-6deg)) scale(1)}25%{transform:translate3d(34px,-44px,0) rotate(calc(var(--r,-6deg) + 10deg)) scale(1.07)}50%{transform:translate3d(4px,-78px,0) rotate(calc(var(--r,-6deg) + 2deg)) scale(1.03)}75%{transform:translate3d(-36px,-30px,0) rotate(calc(var(--r,-6deg) - 12deg)) scale(1.09)}}
 @keyframes holospinfloat{0%{transform:translate3d(0,0,0) rotate(var(--r,-6deg)) scale(1)}25%{transform:translate3d(26px,-34px,0) rotate(calc(var(--r,-6deg) + 90deg)) scale(1.1)}50%{transform:translate3d(8px,-62px,0) rotate(calc(var(--r,-6deg) + 180deg)) scale(1.14)}75%{transform:translate3d(-20px,-30px,0) rotate(calc(var(--r,-6deg) + 270deg)) scale(1.08)}100%{transform:translate3d(0,0,0) rotate(calc(var(--r,-6deg) + 360deg)) scale(1)}}
@@ -130,7 +126,6 @@ img.cma{object-fit:cover;border-radius:50%}
 </svg>
 <div id="load"><div class="logo">HarperamiGen2</div><div class="bars"><i></i><i></i><i></i><i></i><i></i></div><div class="bar"><b></b></div></div>
 <div id="app"></div>
-<button id="mus" class="off" type="button" onclick="musicToggle()" aria-label="Play background music" aria-pressed="false" title="Play background music">🔇</button>
 <div id="toast"></div>
 <script>
 /* Photo background: fades in only when a bg image is present, else the chai gradient stays */
@@ -396,38 +391,4 @@ document.addEventListener('visibilitychange',()=>{
   else dmWatch();
 });
 
-/* ====== Background music (YouTube) ====== */
-const YT_ID='F8cXsi9gzpY';
-let ytp=null,mOn=false,mBlocked=false,ytReady=false,ytLoading=false,ytQ=[];
-window.onYouTubeIframeAPIReady=()=>{ytReady=true;const q=ytQ;ytQ=[];q.forEach(f=>{try{f(true)}catch(e){}})};
-function ytLoad(){if(ytReady)return Promise.resolve(true);return new Promise(r=>{ytQ.push(r);if(ytLoading)return;ytLoading=true;const s=document.createElement('script');s.src='https://www.youtube.com/iframe_api';s.async=true;s.onerror=()=>{ytLoading=false;const q=ytQ;ytQ=[];q.forEach(f=>{try{f(false)}catch(e){}})};document.head.appendChild(s)})}
-function mPaint(){const b=$('#mus');if(!b)return;if(mBlocked){b.textContent='▶';b.classList.remove('on');b.classList.add('off');const t='Open the background music on YouTube';b.title=t;b.setAttribute('aria-label',t);b.setAttribute('aria-pressed','false');return}b.textContent=mOn?'🎵':'🔇';b.classList.toggle('on',mOn);b.classList.toggle('off',!mOn);const t=mOn?'Turn background music off':'Turn background music on';b.title=t;b.setAttribute('aria-label',t);b.setAttribute('aria-pressed',String(mOn))}
-function mUnmute(){mOn=true;if(ytp&&ytp.unMute){ytp.unMute();try{ytp.setVolume(55)}catch(e){}try{ytp.playVideo()}catch(e){}}mPaint()}
-function mMute(){mOn=false;if(ytp&&ytp.mute)ytp.mute();mPaint()}
-function mFallback(){if(mBlocked)return;mBlocked=true;mOn=false;mPaint();toast('YouTube won’t let this video play embedded — tap ▶ to open it')}
-async function mInit(){
-  if(ytp)return ytp;
-  const ok=await ytLoad();
-  if(!ok||!window.YT||!window.YT.Player){mFallback();return null}
-  const host=document.createElement('div');host.id='ythost';host.style.cssText='position:fixed;left:-9999px;top:0;width:200px;height:120px;overflow:hidden;opacity:0;pointer-events:none';
-  const inner=document.createElement('div');host.appendChild(inner);document.body.appendChild(host);
-  ytp=new YT.Player(inner,{videoId:YT_ID,width:200,height:120,playerVars:{autoplay:1,loop:1,playlist:YT_ID,controls:0,modestbranding:1,rel:0,playsinline:1,origin:location.origin},events:{
-    onReady:e=>{try{e.target.mute();e.target.setVolume(55);e.target.playVideo()}catch(err){}mPaint()},
-    onStateChange:()=>mPaint(),
-    onError:()=>mFallback()
-  }});
-  return ytp
-}
-function musicToggle(){if(mBlocked){window.open('https://www.youtube.com/watch?v='+YT_ID,'_blank','noopener');return}if(!mOn){if(ytp)mUnmute();else mInit().then(p=>{if(p)mUnmute()})}else mMute()}
-function musicStart(){if(mOn)return;if(ytp)mUnmute();else mInit().then(p=>{if(p)mUnmute()})}
-document.addEventListener('pointerdown',e=>{if(e.target&&e.target.closest&&e.target.closest('#mus'))return;musicStart()});
-document.addEventListener('keydown',e=>{if(e.target&&e.target.closest&&e.target.closest('#mus'))return;musicStart()});
-/* ====== Background music ducks while a song video is playing ====== */
-let mAuto=false;
-document.addEventListener('play',e=>{if(!e.target||e.target.tagName!=='VIDEO')return;if(mOn){mAuto=true;mMute()}},true);
-const mVideoStop=e=>{if(!e.target||e.target.tagName!=='VIDEO')return;if(mAuto&&!mOn&&!mBlocked){mAuto=false;musicStart()}};
-document.addEventListener('pause',mVideoStop,true);
-document.addEventListener('ended',mVideoStop,true);
-mInit();
-setTimeout(()=>{if(!mOn&&!mBlocked&&$('#mus'))toast('Tap anywhere for background music 🎵')},3600);
 </script></body></html>
