@@ -97,6 +97,12 @@ img.cma{object-fit:cover;border-radius:50%}
 .cprev{display:block;font-size:.78rem;color:var(--mu);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
 .cnt{background:linear-gradient(135deg,#FDFBD4,#D47E30);color:#2a1c0f;border-radius:20px;padding:2px 9px;font-size:.72rem;font-weight:700;flex:none}
 .cthread{display:flex;align-items:center;gap:10px;min-width:0}
+/* ====== Who is online ====== */
+.pav{position:relative;display:inline-flex;flex:none}
+.pdot{position:absolute;right:-1px;bottom:-1px;width:11px;height:11px;border-radius:50%;background:#3ED47B;border:2px solid #202329;opacity:0;transition:opacity .3s;pointer-events:none}
+.pdot.on{opacity:1;box-shadow:0 0 8px rgba(62,212,123,.85);animation:pdpulse 2.4s ease-out infinite}
+@keyframes pdpulse{0%{box-shadow:0 0 0 0 rgba(62,212,123,.55),0 0 8px rgba(62,212,123,.85)}70%{box-shadow:0 0 0 7px rgba(62,212,123,0),0 0 8px rgba(62,212,123,.85)}100%{box-shadow:0 0 0 0 rgba(62,212,123,0),0 0 8px rgba(62,212,123,.85)}}
+.pdot.lg{width:14px;height:14px;right:1px;bottom:1px;border-width:3px}
 </style></head><body>
 <div id="holo" aria-hidden="true"><div class="photo"></div><div class="shine"></div>
 <svg class="st s1" viewBox="0 0 100 100"><use href="#sStar"/></svg>
@@ -179,7 +185,7 @@ async function boot(){
     if(!ae||!/^(INPUT|TEXTAREA|SELECT)$/.test(ae.tagName))home();
   }catch(e){/* offline: keep the saved profile */}
 }
-function login(){me=null;clearSession();clearInterval(chatT);clearInterval(chatW);go(`<div class="card auth"><h2>HarperamiGen2</h2><p class="sub">Welcome to our choir family</p>${fld('u','Username')}${fld('p','Password','password')}<button class="full" onclick="doLogin()">Sign in</button><div class="row" style="margin-top:12px"><button class="lk" onclick="forgot()">Forgot password?</button><button class="lk" onclick="reg()">Register new member</button></div><button class="g full" onclick="adminLogin()">Admin</button></div>`)}
+function login(){presOff();clearInterval(presT);me=null;clearSession();clearInterval(chatT);clearInterval(chatW);go(`<div class="card auth"><h2>HarperamiGen2</h2><p class="sub">Welcome to our choir family</p>${fld('u','Username')}${fld('p','Password','password')}<button class="full" onclick="doLogin()">Sign in</button><div class="row" style="margin-top:12px"><button class="lk" onclick="forgot()">Forgot password?</button><button class="lk" onclick="reg()">Register new member</button></div><button class="g full" onclick="adminLogin()">Admin</button></div>`)}
 async function doLogin(){const r=await api('GET',`members?uname=eq.${enc(val('u').toLowerCase())}&pass=eq.${enc(val('p'))}&select=*`);if(!r.length)return toast('Wrong username or password');me={role:'m',u:r[0]};tab='lib';saveSession();watchChat();home()}
 function adminLogin(){go(`<div class="card auth"><h2>Admin Access</h2><p class="sub">Private login</p>${fld('u','Admin username')}${fld('p','Admin password','password')}<button class="full" onclick="doAdmin()">Enter</button><button class="g full" onclick="login()">Back</button></div>`)}
 async function doAdmin(){await adm();if(val('u')!==D.admin.uname||val('p')!==D.admin.pass)return toast('Invalid admin login');me={role:'a',au:D.admin.uname};tab='mem';saveSession();watchChat();home()}
@@ -191,6 +197,7 @@ async function doForgot(){if(!val('b')||!val('p'))return toast('Fill in all fiel
 function home(){const a=me.role==='a',o=who();
 const tabs=a?[['chat',chatDot?'Chat •':'Chat'],['mem','Members'],['songs','Songs'],['prof','Profile']]:[['chat',chatDot?'Chat •':'Chat'],['lib','Library'],['prof','Profile']];
 go(`<div class="top">${av(o)}<div class="t"><h3>${esc(o.name)}</h3><small>${a?'Administrator':cap(o.voice||'')+' · Member'}</small></div><button class="g s" onclick="login()">Sign out</button></div><div class="tabs">${tabs.map(t=>`<button id="tab_${t[0]}" class="${tab===t[0]?'on':''}" onclick="tab='${t[0]}';home()">${t[1]}</button>`).join('')}</div><div id="body"><p class="mu">Loading…</p></div>`);
+presWatch();
 ({chat,lib,prof:()=>prof(o,a),mem,songs})[tab]()}
 const ls=async()=>{D.songs=await api('GET','songs?select=*&order=title')};
 
@@ -205,7 +212,7 @@ async function saveProf(){const a=me.role==='a';if(!val('n'))return toast('Name 
 function pick(){const i=document.createElement('input');i.type='file';i.accept='image/*';i.style.cssText='position:fixed;left:-9999px';i.onchange=async()=>{const f=i.files[0];i.remove();if(!f)return;toast('Reading photo…');const p=await photo(f);if(!p)return toast('Couldn’t read that picture. Try a JPG or PNG');await patch({photo:p});toast('Photo saved');home()};document.body.appendChild(i);i.click()}
 async function emo(e){const c=document.createElement('canvas');c.width=c.height=128;const x=c.getContext('2d'),g=x.createLinearGradient(0,0,128,128);g.addColorStop(0,'#D47E30');g.addColorStop(1,'#8D5A2B');x.fillStyle=g;x.fillRect(0,0,128,128);x.font='72px sans-serif';x.textAlign='center';x.textBaseline='middle';x.fillText(e,64,70);await patch({photo:c.toDataURL('image/png')});toast('Icon saved');home()}
 
-async function mem(){D.users=await api('GET','members?select=*&order=name');$('#body').innerHTML=`<div class="card"><h2>Members (${D.users.length})</h2>${D.users.length?D.users.map(u=>`<div class="m"><div class="row"><div class="row" style="justify-content:flex-start;flex-wrap:nowrap">${av(u)}<div><b>${esc(u.name)}</b> <span class="mu">@${esc(u.uname)}</span><p>${cap(u.voice||'')} · Age ${esc(u.age||'—')} · Born ${esc(u.birth||'—')}</p><p>${esc(u.addr||'No address')}</p></div></div><button class="d s" onclick="delM('${u.id}')">Delete</button></div></div>`).join(''):'<p class="mu">No members yet.</p>'}</div>`}
+async function mem(){D.users=await api('GET','members?select=*&order=name');$('#body').innerHTML=`<div class="card"><h2>Members (${D.users.length})</h2>${D.users.length?D.users.map(u=>`<div class="m"><div class="row"><div class="row" style="justify-content:flex-start;flex-wrap:nowrap"><span class="pav">${av(u)}<i class="pdot" data-u="${san(u.uname)}"></i></span><div><b>${esc(u.name)}</b> <span class="mu">@${esc(u.uname)}</span><p>${cap(u.voice||'')} · Age ${esc(u.age||'—')} · Born ${esc(u.birth||'—')}</p><p>${esc(u.addr||'No address')}</p></div></div><button class="d s" onclick="delM('${u.id}')">Delete</button></div></div>`).join(''):'<p class="mu">No members yet.</p>'}</div>`;presPaint()}
 async function delM(id){if(!confirm('Delete this member?'))return;await api('DELETE','members?id=eq.'+id);mem();toast('Member deleted')}
 
 async function songs(){await ls();$('#body').innerHTML=`<div class="card"><h2>Add a Song</h2>${fld('t','Song title')}<div class="vs">${VP.map(v=>`<div><label>${cap(v)} video</label><input type="file" accept="video/*" id="f_${v}"></div>`).join('')}</div><button class="full" onclick="addSong()">Upload song</button></div><div class="card"><h2>Manage Songs</h2>${D.songs.map(s=>`<div class="m"><div class="row"><input id="e${s.id}" value="${esc(s.title)}" style="flex:1;min-width:140px"><button class="s" onclick="rename('${s.id}')">Save title</button><button class="d s" onclick="delS('${s.id}')">Delete</button></div><div class="vs">${VP.map(v=>`<div><label>${cap(v)} ${s.v[v]?'✓':'(none)'}</label><input type="file" accept="video/*" onchange="repl('${s.id}','${v}',this)"></div>`).join('')}</div></div>`).join('')||'<p class="mu">No songs yet.</p>'}</div>`}
@@ -297,7 +304,8 @@ function dmThreads(names){
 async function renderDM(){
   const b=$('#chatbody');if(!b)return;
   if(dmTo){
-    b.innerHTML=`<div class="row" style="justify-content:flex-start;margin:2px 0 10px;flex-wrap:nowrap"><button type="button" class="g s" onclick="dmTo=null;chat()">← All</button><div class="cthread">${cava(dmTo.u,dmTo.n)}<b>${esc(dmTo.n)}</b></div></div><div id="chatmsgs" class="cmsgs"><p class="mu">Loading…</p></div><form class="csend" onsubmit="sendDM(event)"><input id="dmbox" placeholder="Private message to ${esc(dmTo.n)}…" autocomplete="off" maxlength="800" aria-label="Private message"><button type="submit" class="s">Send</button></form>`;
+    b.innerHTML=`<div class="row" style="justify-content:flex-start;margin:2px 0 10px;flex-wrap:nowrap"><button type="button" class="g s" onclick="dmTo=null;chat()">← All</button><div class="cthread"><span class="pav">${cava(dmTo.u,dmTo.n)}<i class="pdot lg" data-u="${san(dmTo.u)}"></i></span><b>${esc(dmTo.n)}</b></div></div><div id="chatmsgs" class="cmsgs"><p class="mu">Loading…</p></div><form class="csend" onsubmit="sendDM(event)"><input id="dmbox" placeholder="Private message to ${esc(dmTo.n)}…" autocomplete="off" maxlength="800" aria-label="Private message"><button type="submit" class="s">Send</button></form>`;
+    presPaint();
     await loadDM(true);
     return;
   }
@@ -311,7 +319,8 @@ async function renderDM(){
     th.forEach(t=>{const m=dmPrev[t.last];if(m)prev[t.other]=(m.u===chatMe?'You: ':'')+String(m.t||'')});
   }catch(e){}
   const note=('Notification'in window&&Notification.permission==='granted')?'🔔 Notifications are on — new private messages will pop up even when this page is in the background.':'Notifications are off, so new messages only show up as a “new” badge when you open the app.';
-  b.innerHTML=dmUsers.length?`<p class="hint" style="margin:2px 0 6px">Pick a member to message privately. Only the two of you see that thread in the app.</p><p class="hint" style="margin:0 0 10px">${note}</p>${bellBtn()}<div style="max-height:52vh;overflow-y:auto;margin-top:8px">${dmUsers.map(u=>{const k=san(u.uname),c=cnt[k]||0,pv=prev[k];return `<div class="song" onclick="openDM('${encodeURIComponent(u.uname||'')}')">${cava(u.uname,u.name)}<div style="flex:1;min-width:0"><b>${esc(u.name||u.uname||'Member')}</b><span class="cprev">${esc(pv||('@'+(u.uname||'')))}</span></div>${c?`<span class="cnt">${c}</span>`:'<span class="mu" style="font-size:.8rem">Chat</span>'}</div>`}).join('')}</div>`:'<p class="mu" style="margin:18px 0;text-align:center">No other members yet.</p>';
+  b.innerHTML=dmUsers.length?`<p class="hint" style="margin:2px 0 6px">Pick a member to message privately. Only the two of you see that thread in the app.</p><p class="hint" style="margin:0 0 10px">${note}</p>${bellBtn()}<div style="max-height:52vh;overflow-y:auto;margin-top:8px">${dmUsers.map(u=>{const k=san(u.uname),c=cnt[k]||0,pv=prev[k];return `<div class="song" onclick="openDM('${encodeURIComponent(u.uname||'')}')"><span class="pav">${cava(u.uname,u.name)}<i class="pdot" data-u="${san(u.uname)}"></i></span><div style="flex:1;min-width:0"><b>${esc(u.name||u.uname||'Member')}</b><span class="cprev">${esc(pv||('@'+(u.uname||'')))}</span></div>${c?`<span class="cnt">${c}</span>`:'<span class="mu" style="font-size:.8rem">Chat</span>'}</div>`}).join('')}</div>`:'<p class="mu" style="margin:18px 0;text-align:center">No other members yet.</p>';
+  presPaint();
 }
 function openDM(e){const u=decodeURIComponent(e),f=(dmUsers||[]).find(x=>x.uname===u);dmTo={u:u,n:(f&&f.name)||u};dmSeen=new Map();chat()}
 async function loadDM(force){
@@ -361,6 +370,23 @@ async function cLoadPhotos(){
   return cPhotos;
 }
 const cava=(uname,name)=>{const p=(cPhotos&&cPhotos[san(uname)])||'';return p?`<img class="cma" src="${p}" alt="">`:`<div class="cma">${esc(((name||'?').trim()[0]||'?').toUpperCase())}</div>`};
+/* ====== Presence: each signed-in member refreshes a small file every 15s ====== */
+const PRES='presence/',presSeen=new Map();
+let presT=null;
+const presName=()=>{let u=(me&&me.u&&me.u.uname)||(me&&me.au)||'';if(!u){try{u=(JSON.parse(localStorage.getItem(SKEY)||'null')||{}).u?.uname||''}catch(e){}}return u?san(u):''};
+const presOn=u=>{const t=presSeen.get(san(u));return !!t&&Date.now()-t<45000};
+const presBeat=async()=>{if(!me)return;const n=presName();if(!n)return;try{await fetch(SB+'/storage/v1/object/media/'+PRES+n+'.json',{method:'POST',headers:{...H,'Content-Type':'application/json','x-upsert':'true'},body:JSON.stringify({u:n,n:(me.u&&me.u.name)||'Admin',ts:Date.now()})})}catch(e){}};
+const presLoad=async()=>{
+  if(!me)return;
+  try{
+    const r=await fetch(SB+'/storage/v1/object/list/media',{method:'POST',headers:{...H,'Content-Type':'application/json'},body:JSON.stringify({prefix:PRES,limit:200,sortBy:{column:'name',order:'asc'}})});
+    if(r.ok){const a=await r.json();presSeen.clear();for(const o of a){const k=String(o.name||'').replace(/^presence\//,'').replace(/\.json$/,'');if(k)presSeen.set(k,Date.parse(o.updated_at||o.created_at||'')||0)}}
+  }catch(e){}
+  presPaint();
+};
+const presPaint=()=>{document.querySelectorAll('.pdot[data-u]').forEach(d=>{const on=presOn(d.dataset.u);d.classList.toggle('on',on);d.title=on?'Online now':'Offline'})};
+function presWatch(){clearInterval(presT);presBeat();presLoad();presT=setInterval(()=>{if(document.hidden||!me)return;presBeat();presLoad()},15000)}
+function presOff(){const n=presName();if(!n)return;try{fetch(SB+'/storage/v1/object/media/'+PRES+n+'.json',{method:'DELETE',headers:H,keepalive:true}).catch(()=>{})}catch(e){}}
 if('serviceWorker'in navigator){navigator.serviceWorker.register('sw.js').then(r=>{navReg=r}).catch(()=>{})}
 const dmStore=()=>{try{return JSON.parse(localStorage.getItem('hg2dm_'+chatMe)||'{}')||{}}catch(e){return {}}};
 const dmMark=(pk,n)=>{const o=dmStore();if(!(o[pk]>=n)){o[pk]=n;try{localStorage.setItem('hg2dm_'+chatMe,JSON.stringify(o))}catch(e){}}};
@@ -411,6 +437,7 @@ async function askNotify(){
 }
 document.addEventListener('visibilitychange',()=>{
   if(document.hidden||!me)return;
+  presBeat();presLoad();
   if(tab==='chat'){chatMode==='dm'?loadDM(true):loadChat(true)}
   else dmWatch();
 });
