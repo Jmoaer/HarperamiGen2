@@ -150,15 +150,39 @@ const val=id=>$('#'+id)?.value.trim()||'';
 const photo=f=>new Promise(r=>{const fr=new FileReader();fr.onerror=()=>r('');fr.onload=()=>{const i=new Image;i.onload=()=>{const c=document.createElement('canvas');c.width=c.height=128;const s=Math.min(i.width,i.height);c.getContext('2d').drawImage(i,(i.width-s)/2,(i.height-s)/2,s,s,0,0,128,128);r(c.toDataURL('image/jpeg',.8))};i.onerror=()=>r('');i.src=fr.result};fr.readAsDataURL(f)});
 const fld=(id,l,t='text',v='')=>`<label for="${id}">${l}</label><input id="${id}" type="${t}" value="${esc(v)}">`;
 const who=()=>me.role==='a'?D.admin:me.u;
-const patch=async o=>{if(me.role==='a')await api('PATCH','admin?id=eq.1',o);else{await api('PATCH','members?id=eq.'+me.u.id,o);}Object.assign(who(),o)};
+const patch=async o=>{if(me.role==='a')await api('PATCH','admin?id=eq.1',o);else{await api('PATCH','members?id=eq.'+me.u.id,o);}Object.assign(who(),o);saveSession()};
 const ready=()=>/^https:\/\/.+\.supabase\.co\/?$/.test(SB)&&KEY.length>20;
 function setup(){go(`<div class="card auth"><h2>Almost online</h2><p class="sub">Database not connected yet</p><p class="mu">Open <b>index.html</b> in a text editor and replace <b>PASTE_PROJECT_URL</b> and <b>PASTE_ANON_KEY</b> near the top of the script with the values from Supabase (Settings → API). Then upload the file again. See README.txt.</p></div>`)}
-setTimeout(()=>{$('#load').classList.add('out');ready()?login():setup()},2400);
+const SKEY='hg2session';
+const saveSession=()=>{try{localStorage.setItem(SKEY,JSON.stringify(me))}catch(e){}};
+const clearSession=()=>{try{localStorage.removeItem(SKEY)}catch(e){}};
+setTimeout(()=>{$('#load').classList.add('out');ready()?boot():setup()},2400);
 
-function login(){me=null;clearInterval(chatT);clearInterval(chatW);go(`<div class="card auth"><h2>HarperamiGen2</h2><p class="sub">Welcome to our choir family</p>${fld('u','Username')}${fld('p','Password','password')}<button class="full" onclick="doLogin()">Sign in</button><div class="row" style="margin-top:12px"><button class="lk" onclick="forgot()">Forgot password?</button><button class="lk" onclick="reg()">Register new member</button></div><button class="g full" onclick="adminLogin()">Admin</button></div>`)}
-async function doLogin(){const r=await api('GET',`members?uname=eq.${enc(val('u').toLowerCase())}&pass=eq.${enc(val('p'))}&select=*`);if(!r.length)return toast('Wrong username or password');me={role:'m',u:r[0]};tab='lib';watchChat();home()}
+/* Returned visitors stay signed in until they press Sign out */
+async function boot(){
+  let s=null;try{s=JSON.parse(localStorage.getItem(SKEY)||'null')}catch(e){}
+  if(!s||!s.role)return login();
+  if(s.role==='a'){
+    try{
+      await adm();
+      if(s.au&&s.au!==D.admin.uname){clearSession();return login()}
+      me={role:'a'};tab='mem';watchChat();home();return
+    }catch(e){toast('Couldn’t restore your session. Please sign in');return login()}
+  }
+  if(!s.u||!s.u.uname){clearSession();return login()}
+  me={role:'m',u:s.u};tab='lib';watchChat();home();
+  try{
+    const r=await api('GET','members?id=eq.'+enc(s.u.id)+'&select=*');
+    if(!r.length){clearSession();toast('Your account is no longer active. Please sign in');return login()}
+    me.u=r[0];saveSession();
+    const ae=document.activeElement;
+    if(!ae||!/^(INPUT|TEXTAREA|SELECT)$/.test(ae.tagName))home();
+  }catch(e){/* offline: keep the saved profile */}
+}
+function login(){me=null;clearSession();clearInterval(chatT);clearInterval(chatW);go(`<div class="card auth"><h2>HarperamiGen2</h2><p class="sub">Welcome to our choir family</p>${fld('u','Username')}${fld('p','Password','password')}<button class="full" onclick="doLogin()">Sign in</button><div class="row" style="margin-top:12px"><button class="lk" onclick="forgot()">Forgot password?</button><button class="lk" onclick="reg()">Register new member</button></div><button class="g full" onclick="adminLogin()">Admin</button></div>`)}
+async function doLogin(){const r=await api('GET',`members?uname=eq.${enc(val('u').toLowerCase())}&pass=eq.${enc(val('p'))}&select=*`);if(!r.length)return toast('Wrong username or password');me={role:'m',u:r[0]};tab='lib';saveSession();watchChat();home()}
 function adminLogin(){go(`<div class="card auth"><h2>Admin Access</h2><p class="sub">Private login</p>${fld('u','Admin username')}${fld('p','Admin password','password')}<button class="full" onclick="doAdmin()">Enter</button><button class="g full" onclick="login()">Back</button></div>`)}
-async function doAdmin(){await adm();if(val('u')!==D.admin.uname||val('p')!==D.admin.pass)return toast('Invalid admin login');me={role:'a'};tab='mem';watchChat();home()}
+async function doAdmin(){await adm();if(val('u')!==D.admin.uname||val('p')!==D.admin.pass)return toast('Invalid admin login');me={role:'a',au:D.admin.uname};tab='mem';saveSession();watchChat();home()}
 function reg(){go(`<div class="card auth"><h2>Join the Choir</h2><p class="sub">Create your member account</p>${fld('n','Full name')}${fld('u','Username')}${fld('p','Password','password')}<div class="row2"><div>${fld('b','Birthdate','date')}</div><div>${fld('a','Age','number')}</div></div>${fld('ad','Full address')}<label for="v">Voice part</label><select id="v">${VP.map(v=>`<option value="${v}">${cap(v)}</option>`).join('')}</select><button class="full" onclick="doReg()">Register</button><button class="g full" onclick="login()">Back</button></div>`)}
 async function doReg(){const u={id:uid(),name:val('n'),uname:val('u').toLowerCase(),pass:val('p'),birth:val('b'),age:val('a'),addr:val('ad'),voice:val('v'),photo:''};if(!u.name||!u.uname||!u.pass)return toast('Name, username and password are required');const x=await api('GET',`members?uname=eq.${enc(u.uname)}&select=id`);if(x.length)return toast('Username is taken');await api('POST','members',u);toast('Registered! Please sign in');login()}
 function forgot(){go(`<div class="card auth"><h2>Reset Password</h2><p class="sub">Confirm your birthdate to set a new one</p>${fld('u','Username')}${fld('b','Birthdate','date')}${fld('p','New password','password')}<button class="full" onclick="doForgot()">Reset</button><button class="g full" onclick="login()">Back</button></div>`)}
